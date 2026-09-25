@@ -1,3 +1,4 @@
 .idea
 /A1/.venv/
 .env
+/A1/src/local_testing/
