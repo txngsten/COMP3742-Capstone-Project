@@ -87,7 +87,8 @@ def fetch_in_chunks_market(
                 metrics=market_metrics,
                 interval=interval,
                 date_start=current_start,
-                date_end=current_end
+                date_end=current_end,
+                network_region='NSW1'
             )
 
             # Unpack response data and append it to data list
@@ -161,7 +162,8 @@ def fetch_in_chunks_network(
                 metrics=network_metrics,
                 interval=interval,
                 date_start=current_start,
-                date_end=current_end
+                date_end=current_end,
+                network_region='NSW1'
             )
 
             # Unpack response data and append it to data list
