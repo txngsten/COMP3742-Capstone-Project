@@ -20,14 +20,14 @@ load_dotenv()
 # Pipeline constants
 API_KEY: str = os.getenv("OPENELECTRICITY_API_KEY")
 START_DATE: datetime = datetime(2000, 1, 1)
-END_DATE: datetime = datetime.now()
+END_DATE: datetime = datetime(2026, 9, 24)
 
 
 def main():
     etl = DataLoader(START_DATE, END_DATE, API_KEY)
     etl.fetch()
 
-    # Access underlying dataframe object
+    # Access and/or assign underlying dataframe object
     df = etl.data_set
 
     print(df.head())
