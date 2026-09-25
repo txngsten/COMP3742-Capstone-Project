@@ -30,5 +30,3 @@ typing-inspection==0.4.4
 typing_extensions==4.16.0
 urllib3==2.8.0
 yarl==1.25.1
-## The following requirements were added by pip freeze:
-## The following requirements were added by pip freeze:
