@@ -9,8 +9,6 @@ Description:
 # Imports
 import os
 
-import pandas as pd
-
 from DataLoader import DataLoader
 from dotenv import load_dotenv
 from datetime import datetime
@@ -20,48 +18,20 @@ from openelectricity.types import DataMetric, MarketMetric
 load_dotenv()
 
 # Pipeline constants
-API_KEY = os.getenv("OPENELECTRICITY_API_KEY")
-START_DATE = datetime(1999, 1, 1)
-END_DATE = datetime.now()
-GEN_URL = "https://api.openelectricity.org.au/v4/data/network/NEM"
-MARKET_URL = "https://api.openelectricity.org.au/v4/market/network/NEM"
+API_KEY: str = os.getenv("OPENELECTRICITY_API_KEY")
+START_DATE: datetime = datetime(2000, 1, 1)
+END_DATE: datetime = datetime.now()
 
-# Network metrics
-network_metrics = [
-    DataMetric.POWER,
-    DataMetric.ENERGY,
-    DataMetric.EMISSIONS,
-    DataMetric.MARKET_VALUE,
-    DataMetric.STORAGE_BATTERY,
-]
-
-# Market metrics
-market_metrics = [
-    MarketMetric.PRICE,
-    MarketMetric.DEMAND,
-    MarketMetric.DEMAND_ENERGY,
-    MarketMetric.DEMAND_GROSS,
-    MarketMetric.DEMAND_GROSS_ENERGY,
-    MarketMetric.GENERATION_RENEWABLE,
-    MarketMetric.GENERATION_RENEWABLE_ENERGY,
-    MarketMetric.GENERATION_RENEWABLE_WITH_STORAGE,
-    MarketMetric.GENERATION_RENEWABLE_WITH_STORAGE_ENERGY,
-    MarketMetric.RENEWABLE_PROPORTION,
-    MarketMetric.RENEWABLE_WITH_STORAGE_PROPORTION,
-    MarketMetric.CURTAILMENT,
-    MarketMetric.CURTAILMENT_ENERGY,
-    MarketMetric.CURTAILMENT_SOLAR_UTILITY,
-    MarketMetric.CURTAILMENT_SOLAR_UTILITY_ENERGY,
-    MarketMetric.CURTAILMENT_WIND,
-    MarketMetric.CURTAILMENT_WIND_ENERGY,
-    MarketMetric.FLOW_EXPORTS,
-    MarketMetric.FLOW_EXPORTS_ENERGY,
-    MarketMetric.FLOW_IMPORTS,
-    MarketMetric.FLOW_IMPORTS_ENERGY
-]
 
 def main():
     etl = DataLoader(START_DATE, END_DATE, API_KEY)
+    etl.fetch()
+
+    # Access underlying dataframe object
+    df = etl.data_set
+
+    print(df.head())
+    print(df.describe())
 
 if __name__ == "__main__":
     main()
