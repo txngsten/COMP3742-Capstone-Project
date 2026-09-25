@@ -34,6 +34,13 @@ Install the dependencies using pip:
 pip install -r requirements.txt
 ```
 
+Then head to [Open Electricity Platform](https://platform.openelectricity.org.au/) and create an educational account by signing up with your flinders email.
+You must do this to ensure you have access to historical data range.
+Create your api key and then copy it and run the following command inside the [src](src) directory:
+```bash
+echo "OPENELECTRICITY_API_KEY=<PASTE YOUR API KEY HERE>" > .env 
+```
+
 ## Installing New Dependencies
 Please make sure to update the [requirements.txt](src/requirements.txt) after installing new packages via:
 ```bash
