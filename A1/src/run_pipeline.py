@@ -39,7 +39,7 @@ def main():
 
     # Save to parquet
     RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(RAW_OUTPUT_PATH, index=False)
+    df.to_parquet(RAW_OUTPUT_PATH, index=False, engine="pyarrow")
     print(f"Saved {len(df):,} rows to {RAW_OUTPUT_PATH}")
 
     # Run data cleaning
