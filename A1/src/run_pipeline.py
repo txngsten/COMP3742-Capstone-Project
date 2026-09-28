@@ -64,7 +64,8 @@ def main():
         json.dumps(cleaner.report, indent=2) + "\n"
     )
 
-    return df_clean
+    # Do cool feature engineering here ;)
+    df_clean = {};
 
 if __name__ == "__main__":
     main()
