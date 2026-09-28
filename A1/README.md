@@ -19,10 +19,10 @@ Please follow all steps in order to ensure pipeline runs smoothly :)
 
 Ensure python is installed on your system, version 3.11 or later.
 
-Change into the [src](src) directory:
+From the repository root, change into the [src](src) directory:
 
 ```bash
-cd src
+cd A1/src
 ```
 
 Create and activate your virtual environment.
@@ -56,3 +56,27 @@ Please make sure to update the [requirements.txt](src/requirements.txt) after in
 ```bash
 pip freeze > requirements.txt
 ```
+
+
+## Run from the repository root
+
+Using the existing root virtual environment:
+
+```bash
+.venv/bin/python A1/src/run_pipeline.py
+.venv/bin/python A1/scripts/check_energy_scale.py
+```
+
+The second command fetches only two sample days for comparison; it does not replace raw data. If using the `A1/src/.venv` environment created above, substitute its Python executable, or activate it and use `python`.
+
+- Pipeline code: `src/`
+- Cleaning notebook: [notebooks/data_cleaning.ipynb](notebooks/data_cleaning.ipynb)
+- Raw and cleaned datasets: `data/raw/` and `data/processed/`
+- API comparison evidence: `data/validation/`
+- Cleaning report: `reports/cleaning_report.json` (written by the pipeline)
+- Notebook charts: `reports/figures/histograms/` and `reports/figures/boxplots/`
+- [Cleaning decisions](docs/cleaning_decisions.md)
+- [Data dictionary](docs/data_dictionary.md)
+
+Dependencies remain in `src/requirements.txt`, and the API key remains in `src/.env`.
+The notebook resolves paths when launched from the repository root or within A1.
