@@ -2,7 +2,7 @@
 
 ## Scope and provenance
 
-This document records the decisions behind [the cleaning notebook](../notebooks/data_cleaning.ipynb) and [DataCleaner](../src/DataCleaner.py). Cleaning validates and corrects the ingested data; it does not create predictive features or train models.
+This document records the decisions behind [the cleaning notebook](../notebooks/data_cleaning.ipynb) and [DataLoader](../src/DataLoader.py). Cleaning validates and corrects the ingested data; it does not create predictive features or train models.
 
 The reviewed snapshot contains 234,312 hourly NSW observations from 2000-01-01 00:00 through 2026-09-23 23:00, in fixed UTC+10 time. Counts below describe that snapshot and may change after future downloads.
 
@@ -13,7 +13,7 @@ Raw data is preserved in `data/raw/electricity_raw.parquet`. The cleaned output 
 | Finding | Decision | Status |
 | --- | --- | --- |
 | The old downloader skipped a day between requests, omitting 7,320 hours. | Use adjoining request windows and explicitly resolve repeated boundaries. Refetch the data. | Resolved: 234,312 expected hourly timestamps are present. |
-| Duplicate or invalid timestamps and gaps could break hourly alignment. | Require timezone-aware, non-null, unique timestamps and hourly continuity. Sort chronologically. Conflicting data raises an error rather than being silently deleted. | Implemented in DataCleaner. |
+| Duplicate or invalid timestamps and gaps could break hourly alignment. | Require timezone-aware, non-null, unique timestamps and hourly continuity. Sort chronologically. Conflicting data raises an error rather than being silently deleted. | Implemented in DataLoader. |
 | Measurement types or infinity values may be invalid. | Require numeric measurements and reject infinities. Missing measurements remain allowed. | Implemented. |
 | Nine energy values and ten demand values are missing. | Retain rows and NaN values, preserving other measurements and the hourly timeline. | Retained; source recovery unresolved. |
 | The nine energy gaps occur around daylight-saving transitions at 02:00 in 2000–2008. | Document a possible historical time-handling issue. Do not shift timestamps or interpolate on this evidence alone. | Cause unconfirmed. |
@@ -31,7 +31,7 @@ Open Electricity documented an erroneous division by 1,000 affecting renewable e
 
 Fresh hourly NSW samples for January 1 in 2000 and 2001 exactly matched the saved observations. The API labelled energy as MWh in both years. See the [comparison](../data/validation/energy_scale_20260928T104958038336Z/comparison.csv), [summary](../data/validation/energy_scale_20260928T104958038336Z/summary.csv), and [unit metadata](../data/validation/energy_scale_20260928T104958038336Z/metadata.json).
 
-The monthly pattern and documented bug support the correction, but the exact historical cause and range are not independently confirmed. The correction currently runs automatically on raw 2000 observations, without a ratio guard or CLI flag. Input must therefore be raw data; reusing already-cleaned data as new input would rescale it again. Repeated `clean()` calls on the same cleaner use its original input copy and do not compound the correction.
+The monthly pattern and documented bug support the correction, but the exact historical cause and range are not independently confirmed. The correction currently runs automatically on raw 2000 observations, without a ratio guard or CLI flag. Input must therefore be raw data; reusing already-cleaned data as new input would rescale it again. Repeated `clean()` calls on the same loader use its raw data_set and do not compound the correction.
 
 ## Validation and interpretation
 

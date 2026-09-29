@@ -11,7 +11,6 @@ import os
 import json
 
 from DataLoader import DataLoader
-from DataCleaner import DataCleaner
 from dotenv import load_dotenv
 from datetime import datetime
 from openelectricity.types import DataMetric, MarketMetric
@@ -50,8 +49,7 @@ def main():
     print(f"Saved {len(df):,} rows to {RAW_OUTPUT_PATH}")
 
     # Clean data
-    cleaner = DataCleaner(df)
-    df_clean = cleaner.clean()
+    df_clean = etl.clean()
 
     # Save cleaned df as parquet
     CLEAN_DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -61,7 +59,7 @@ def main():
     # Store a report of what was done during cleaning.
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     (REPORTS_DIR / "cleaning_report.json").write_text(
-        json.dumps(cleaner.report, indent=2) + "\n"
+        json.dumps(etl.cleaning_report, indent=2) + "\n"
     )
 
     # Do cool feature engineering here ;)
