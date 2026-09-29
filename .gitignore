@@ -4,3 +4,5 @@
 /A1/src/local_testing/
 /A1/src/.venv/
 .DS_Store
+/A1/data    
+/A1/reports/
