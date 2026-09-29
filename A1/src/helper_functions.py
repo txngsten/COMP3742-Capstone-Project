@@ -76,7 +76,7 @@ def fetch_in_chunks_market(
     while current_start < end_date:
         # Compute current chunk end date
         current_end = min(
-            current_start + timedelta(days=max_days + 1),
+            current_start + timedelta(days=max_days),
             end_date
         )
 
@@ -108,13 +108,16 @@ def fetch_in_chunks_market(
                 break
             raise
 
-        # Move to next chunk, add 1 to avoid overlap
-        current_start = current_end + timedelta(days=1)
+        # Reuse the boundary so no hourly intervals are skipped.
+        current_start = current_end
 
     # Convert to dataframe, indexed by timestamp
     df = (
         pd.DataFrame(all_data)
-        .pivot_table(index=["timestamp"], columns="metric", values="value")
+        # Inclusive request boundaries can return the same observation twice.
+        # Keep the later response explicitly instead of averaging duplicates.
+        .drop_duplicates(subset=["timestamp", "metric"], keep="last")
+        .pivot(index="timestamp", columns="metric", values="value")
         .reset_index()
     )
     df.columns.name = None
@@ -151,7 +154,7 @@ def fetch_in_chunks_network(
     while current_start < end_date:
         # Compute current chunk end date
         current_end = min(
-            current_start + timedelta(days=max_days + 1),
+            current_start + timedelta(days=max_days),
             end_date
         )
 
@@ -183,13 +186,16 @@ def fetch_in_chunks_network(
                 break
             raise
 
-        # Move to next chunk, add 1 to avoid overlap
-        current_start = current_end + timedelta(days=1)
+        # Reuse the boundary so no hourly intervals are skipped.
+        current_start = current_end
 
     # Convert to dataframe, indexed by timestamp
     df = (
         pd.DataFrame(all_data)
-        .pivot_table(index=["timestamp"], columns="metric", values="value")
+        # Inclusive request boundaries can return the same observation twice.
+        # Keep the later response explicitly instead of averaging duplicates.
+        .drop_duplicates(subset=["timestamp", "metric"], keep="last")
+        .pivot(index="timestamp", columns="metric", values="value")
         .reset_index()
     )
     df.columns.name = None
