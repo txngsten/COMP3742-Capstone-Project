@@ -1,6 +1,6 @@
 """
-Student Names: Oliver Wuttke, Hans Pujalte
-Student FANs: WUTT0019, PUJA0009
+Student Names: Oliver Wuttke, Hans Pujalte, Shivansh Pant
+Student FANs: WUTT0019, PUJA0009, PANT0108
 File: DataLoader.py
 Date: 22-09-2026
 Description:
@@ -11,7 +11,16 @@ import pandas as pd
 import numpy as np
 from pandas.api.types import is_numeric_dtype
 
-from helper_functions import fetch_in_chunks_market, fetch_in_chunks_network
+from helper_functions import (
+    fetch_in_chunks_market,
+    fetch_in_chunks_network,
+    trim_to_curtailment_coverage,
+    drop_redundant_columns,
+    fill_short_gaps,
+    flag_negative_curtailment,
+    add_time_features,
+    add_lag_features,
+)
 
 from datetime import datetime, timedelta
 from openelectricity import OEClient
@@ -22,6 +31,10 @@ class DataLoader:
         'timestamp', 'energy', 'demand', 'generation_renewable',
         'generation_renewable_energy', 'renewable_proportion', 'curtailment',
     }
+    MAX_GAP_HOURS = 3
+    LAG_COLUMNS = ['price', 'demand', 'generation_renewable', 'curtailment']
+    LAG_HOURS = [1, 24, 168]
+    ROLLING_HOURS = 24
 
     def __init__(self, start_date: datetime, end_date: datetime, api_key: str) -> None:
         """
@@ -39,6 +52,8 @@ class DataLoader:
         self.data_set = pd.DataFrame()
         self.cleaned_data = pd.DataFrame()
         self.cleaning_report = None
+        self.transformed_data = pd.DataFrame()
+        self.transform_report = None
 
     def fetch(self) -> None:
         """
@@ -158,4 +173,103 @@ class DataLoader:
             ],
         }
         self.cleaned_data = data
+        return data
+
+    def transform(self) -> pd.DataFrame:
+        """
+        Transforms the cleaned dataset into features for the machine learning sub-system.
+        Author: Shivansh Pant - PANT0108
+
+        Returns:
+            Transformed dataframe, also stored in self.transformed_data
+
+        Raises:
+            ValueError: If clean() has not been run first
+        """
+        self.transform_report = None
+        self.transformed_data = pd.DataFrame()
+        if self.cleaned_data.empty:
+            raise ValueError('No cleaned data found; run clean() before transform().')
+
+        # Work on a copy so the cleaned data stays untouched.
+        data = self.cleaned_data.copy(deep=True)
+        rows_before = len(data)
+        steps = []
+
+        # Trim to the period where curtailment is actually recorded.
+        data, coverage_start = trim_to_curtailment_coverage(data)
+        steps.append({
+            'step': 'trim_time_window',
+            'start': coverage_start.isoformat(),
+            'rows_removed': rows_before - len(data),
+            'reason': 'Before source coverage, curtailment is recorded as 0, not missing, '
+                      'so earlier rows would teach the model fake zeros.',
+        })
+
+        # Drop columns that duplicate others or are mostly missing.
+        data, dropped = drop_redundant_columns(data)
+        steps.append({
+            'step': 'drop_redundant_columns',
+            'columns_dropped': dropped,
+            'columns_kept': [c for c in data.columns if c != 'timestamp'],
+            'reason': 'Duplicate columns would count the same information twice '
+                      'in distance-based models like clustering.',
+        })
+
+        # Fill short gaps so models get complete rows.
+        data, filled_counts, unfilled_counts = fill_short_gaps(data, self.MAX_GAP_HOURS)
+        steps.append({
+            'step': 'fill_short_gaps',
+            'max_gap_hours': self.MAX_GAP_HOURS,
+            'values_filled': filled_counts,
+            'values_left_missing': unfilled_counts,
+            'rows_flagged': int(data.was_imputed.sum()),
+            'reason': 'The remaining gaps are single missing hours at 02:00 when daylight saving starts, '
+                      'so a straight line between neighboring hours is a fair estimate.',
+        })
+
+        # Flag hours with negative curtailment instead of removing them.
+        data, negative_counts = flag_negative_curtailment(data)
+        steps.append({
+            'step': 'flag_negative_curtailment',
+            'negative_values': negative_counts,
+            'rows_flagged': int(data.curtailment_negative.sum()),
+            'renewable_proportion_above_100': int(data.renewable_proportion.gt(100).sum()),
+            'reason': "Curtailment can't really be negative, but keep source values "
+                      'and flag these hours as suspect.',
+        })
+
+        # Add time of day, day of week, and month features.
+        data, time_columns = add_time_features(data)
+        steps.append({
+            'step': 'add_time_features',
+            'columns_added': time_columns,
+            'reason': "Demand and prices follow daily, weekly, and yearly cycles; "
+                      "sine and cosine keep each cycle's ends close together.",
+        })
+
+        # Add lag and rolling features from past hours.
+        data, lag_columns, warmup_rows = add_lag_features(
+            data,
+            self.LAG_COLUMNS,
+            self.LAG_HOURS,
+            self.ROLLING_HOURS
+        )
+        steps.append({
+            'step': 'add_lag_features',
+            'columns_added': lag_columns,
+            'rows_dropped_for_history': warmup_rows,
+            'reason': 'Electricity data depends on recent history; '
+                      'use only past values so the model never sees the future.',
+        })
+
+        # Store a report of what the transform did.
+        self.transform_report = {
+            'rows_before': rows_before,
+            'rows_after': len(data),
+            'first_timestamp': data.timestamp.min().isoformat(),
+            'last_timestamp': data.timestamp.max().isoformat(),
+            'steps': steps,
+        }
+        self.transformed_data = data
         return data
