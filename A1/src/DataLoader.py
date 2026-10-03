@@ -15,6 +15,7 @@ from helper_functions import (
     fetch_in_chunks_market,
     fetch_in_chunks_network,
     trim_to_curtailment_coverage,
+    drop_redundant_columns,
 )
 
 from datetime import datetime, timedelta
@@ -195,6 +196,16 @@ class DataLoader:
             'rows_removed': rows_before - len(data),
             'reason': 'Before source coverage, curtailment is recorded as 0, not missing, '
                       'so earlier rows would teach the model fake zeros.',
+        })
+
+        # Drop columns that duplicate others or are mostly missing.
+        data, dropped = drop_redundant_columns(data)
+        steps.append({
+            'step': 'drop_redundant_columns',
+            'columns_dropped': dropped,
+            'columns_kept': [c for c in data.columns if c != 'timestamp'],
+            'reason': 'Duplicate columns would count the same information twice '
+                      'in distance-based models like clustering.',
         })
 
         # Store a report of what the transform did.

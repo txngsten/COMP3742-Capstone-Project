@@ -47,6 +47,22 @@ market_metrics: list[MarketMetric] = [
     MarketMetric.FLOW_IMPORTS_ENERGY
 ]
 
+# Columns that duplicate another column or are mostly missing.
+redundant_columns: list[str] = [
+    'energy',
+    'demand_energy',
+    'demand_gross_energy',
+    'generation_renewable_energy',
+    'generation_renewable_with_storage_energy',
+    'curtailment_energy',
+    'curtailment_solar_utility_energy',
+    'curtailment_wind_energy',
+    'flow_exports_energy',
+    'flow_imports_energy',
+    'market_value',
+    'storage_battery',
+]
+
 def fetch_in_chunks_market(
         start_date: datetime,
         end_date: datetime,
@@ -231,3 +247,23 @@ def trim_to_curtailment_coverage(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.T
     # Keep only rows from the coverage start onwards.
     trimmed = data[data['timestamp'] >= coverage_start].reset_index(drop=True)
     return trimmed, coverage_start
+
+
+def drop_redundant_columns(data: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+    """
+    Drops columns that repeat information in another column.
+    Author: Shivansh Pant - PANT0108
+
+    At a 1h interval, each energy column is its power column times one hour,
+    so they're near-perfect duplicates. market_value is energy times price,
+    and storage_battery is mostly missing even after the trim.
+
+    Args:
+        data: Electricity dataframe to drop columns from
+
+    Returns:
+        A tuple of the reduced dataframe and the list of columns dropped.
+    """
+    # Only drop columns that are actually in the data.
+    dropped = [column for column in redundant_columns if column in data.columns]
+    return data.drop(columns=dropped), dropped

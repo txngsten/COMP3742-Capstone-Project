@@ -63,6 +63,7 @@ def main():
         json.dumps(etl.cleaning_report, indent=2) + "\n"
     )
 
+    # Do cool feature engineering here ;) -- shiv replies: Yes, I will do that 'sad emoji, burnt out from work emoji'
     # Transform cleaned data into features
     df_transformed = etl.transform()
 
