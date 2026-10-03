@@ -1,6 +1,6 @@
 """
-Student Names: Oliver Wuttke, Hans Pujalte
-Student FANs: WUTT0019, PUJA0009
+Student Names: Oliver Wuttke, Hans Pujalte, Shivansh Pant
+Student FANs: WUTT0019, PUJA0009, PANT0108
 File: DataLoader.py
 Date: 22-09-2026
 Description:
@@ -11,7 +11,11 @@ import pandas as pd
 import numpy as np
 from pandas.api.types import is_numeric_dtype
 
-from helper_functions import fetch_in_chunks_market, fetch_in_chunks_network
+from helper_functions import (
+    fetch_in_chunks_market,
+    fetch_in_chunks_network,
+    trim_to_curtailment_coverage,
+)
 
 from datetime import datetime, timedelta
 from openelectricity import OEClient
@@ -39,6 +43,8 @@ class DataLoader:
         self.data_set = pd.DataFrame()
         self.cleaned_data = pd.DataFrame()
         self.cleaning_report = None
+        self.transformed_data = pd.DataFrame()
+        self.transform_report = None
 
     def fetch(self) -> None:
         """
@@ -158,4 +164,46 @@ class DataLoader:
             ],
         }
         self.cleaned_data = data
+        return data
+
+    def transform(self) -> pd.DataFrame:
+        """
+        Transforms the cleaned dataset into features for the machine learning sub-system.
+        Author: Shivansh Pant - PANT0108
+
+        Returns:
+            Transformed dataframe, also stored in self.transformed_data
+
+        Raises:
+            ValueError: If clean() has not been run first
+        """
+        self.transform_report = None
+        self.transformed_data = pd.DataFrame()
+        if self.cleaned_data.empty:
+            raise ValueError('No cleaned data found; run clean() before transform().')
+
+        # Work on a copy so the cleaned data stays untouched.
+        data = self.cleaned_data.copy(deep=True)
+        rows_before = len(data)
+        steps = []
+
+        # Trim to the period where curtailment is actually recorded.
+        data, coverage_start = trim_to_curtailment_coverage(data)
+        steps.append({
+            'step': 'trim_time_window',
+            'start': coverage_start.isoformat(),
+            'rows_removed': rows_before - len(data),
+            'reason': 'Before source coverage, curtailment is recorded as 0, not missing, '
+                      'so earlier rows would teach the model fake zeros.',
+        })
+
+        # Store a report of what the transform did.
+        self.transform_report = {
+            'rows_before': rows_before,
+            'rows_after': len(data),
+            'first_timestamp': data.timestamp.min().isoformat(),
+            'last_timestamp': data.timestamp.max().isoformat(),
+            'steps': steps,
+        }
+        self.transformed_data = data
         return data

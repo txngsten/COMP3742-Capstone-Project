@@ -1,6 +1,6 @@
 """
-Student Names: Oliver Wuttke, Hans Pujalte
-Student FANs: WUTT0019, PUJA0009
+Student Names: Oliver Wuttke, Hans Pujalte, Shivansh Pant
+Student FANs: WUTT0019, PUJA0009, PANT0108
 File: run_pipeline.py
 Date: 22-09-2026
 Description:
@@ -31,6 +31,7 @@ RAW_OUTPUT_PATH = RAW_DATA_DIR / "electricity_raw.parquet"
 
 CLEAN_DATA_DIR = PROJECT_DIR / "data" / "processed"
 CLEAN_OUTPUT_PATH = CLEAN_DATA_DIR / "electricity_cleaned.parquet"
+TRANSFORMED_OUTPUT_PATH = CLEAN_DATA_DIR / "electricity_transformed.parquet"
 REPORTS_DIR = PROJECT_DIR / "reports"
 
 
@@ -62,8 +63,17 @@ def main():
         json.dumps(etl.cleaning_report, indent=2) + "\n"
     )
 
-    # Do cool feature engineering here ;)
-    df_clean = {};
+    # Transform cleaned data into features
+    df_transformed = etl.transform()
+
+    # Save transformed df as parquet
+    df_transformed.to_parquet(TRANSFORMED_OUTPUT_PATH, index=False, engine="pyarrow")
+    print(f"Saved {len(df_transformed):,} transformed rows to {TRANSFORMED_OUTPUT_PATH}")
+
+    # Store a report of what the transform did.
+    (REPORTS_DIR / "transform_report.json").write_text(
+        json.dumps(etl.transform_report, indent=2) + "\n"
+    )
 
 if __name__ == "__main__":
     main()

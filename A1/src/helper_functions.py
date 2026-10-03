@@ -1,6 +1,6 @@
 """
-Student Names: Oliver Wuttke,
-Student FANs: WUTT0019,
+Student Names: Oliver Wuttke, Shivansh Pant
+Student FANs: WUTT0019, PANT0108
 File: helper_functions.py
 Date: 22-09-2026
 Description: A file containing helpful functions to be used by the DataLoader class.
@@ -201,3 +201,33 @@ def fetch_in_chunks_network(
     df.columns.name = None
 
     return df
+
+def trim_to_curtailment_coverage(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Timestamp]:
+    """
+    Trims the dataset to the first day with real curtailment data.
+    Author: Shivansh Pant - PANT0108
+
+    Before source coverage, curtailment is recorded as 0, not missing;
+    these zeros aren't real observations.
+
+    Args:
+        data: Cleaned electricity dataframe sorted by timestamp
+
+    Returns:
+        A tuple of the trimmed dataframe and the timestamp it starts from.
+
+    Raises:
+        ValueError: If curtailment has no nonzero values to trim from
+    """
+    # Find the first hour with nonzero curtailment.
+    nonzero = data['curtailment'].ne(0) & data['curtailment'].notna()
+    if not nonzero.any():
+        raise ValueError('curtailment has no nonzero values; cannot find coverage start.')
+    first_nonzero = data.loc[nonzero, 'timestamp'].min()
+
+    # Start at midnight that day so every kept day is complete.
+    coverage_start = first_nonzero.normalize()
+
+    # Keep only rows from the coverage start onwards.
+    trimmed = data[data['timestamp'] >= coverage_start].reset_index(drop=True)
+    return trimmed, coverage_start
