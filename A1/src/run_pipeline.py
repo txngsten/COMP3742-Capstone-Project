@@ -10,13 +10,15 @@ Description:
 import os
 import json
 
+import pandas as pd
+
 from DataLoader import DataLoader
 from dotenv import load_dotenv
 from datetime import datetime
 from pathlib import Path
 
 # Resolve paths from this file, independently of the launch directory.
-PROJECT_DIR = Path(__file__).resolve().parents[1]
+PROJECT_DIR: Path = Path(__file__).resolve().parents[1]
 load_dotenv(PROJECT_DIR / "src" / ".env")
 
 # Pipeline constants
@@ -25,21 +27,21 @@ START_DATE: datetime = datetime(2000, 1, 1)
 END_DATE: datetime = datetime(2026, 9, 24)
 
 # Directory
-RAW_DATA_DIR = PROJECT_DIR / "data" / "raw"
-RAW_OUTPUT_PATH = RAW_DATA_DIR / "electricity_raw.parquet"
+RAW_DATA_DIR: Path = PROJECT_DIR / "data" / "raw"
+RAW_OUTPUT_PATH: Path = RAW_DATA_DIR / "electricity_raw.parquet"
 
-CLEAN_DATA_DIR = PROJECT_DIR / "data" / "processed"
-CLEAN_OUTPUT_PATH = CLEAN_DATA_DIR / "electricity_cleaned.parquet"
-TRANSFORMED_OUTPUT_PATH = CLEAN_DATA_DIR / "electricity_transformed.parquet"
-REPORTS_DIR = PROJECT_DIR / "reports"
+CLEAN_DATA_DIR: Path = PROJECT_DIR / "data" / "processed"
+CLEAN_OUTPUT_PATH: Path = CLEAN_DATA_DIR / "electricity_cleaned.parquet"
+TRANSFORMED_OUTPUT_PATH: Path = CLEAN_DATA_DIR / "electricity_transformed.parquet"
+REPORTS_DIR: Path = PROJECT_DIR / "reports"
 
 
 def main():
-    etl = DataLoader(START_DATE, END_DATE, API_KEY)
+    etl: DataLoader = DataLoader(START_DATE, END_DATE, API_KEY)
     etl.fetch()
 
     # Access and/or assign underlying dataframe object
-    df = etl.data_set
+    df: pd.DataFrame = etl.data_set
     print(df.head())
     print(df.describe())
 
@@ -49,7 +51,9 @@ def main():
     print(f"Saved {len(df)} rows and {len(df.columns)} columns to {RAW_OUTPUT_PATH}")
 
     # Clean data
-    df_clean = etl.clean()
+    df_clean: pd.DataFrame = etl.clean()
+    print(df_clean.head())
+    print(df_clean.describe())
 
     # Save cleaned df as parquet
     CLEAN_DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -63,7 +67,9 @@ def main():
     )
 
     # Transform cleaned data into features
-    df_transformed = etl.transform()
+    df_transformed: pd.DataFrame = etl.transform()
+    print(df_transformed.head())
+    print(df_transformed.describe())
 
     # Save transformed df as parquet
     df_transformed.to_parquet(TRANSFORMED_OUTPUT_PATH, index=False, engine="pyarrow")
