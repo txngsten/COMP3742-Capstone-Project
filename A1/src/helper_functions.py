@@ -7,6 +7,7 @@ Description: A file containing helpful functions to be used by the DataLoader cl
 """
 
 # Imports
+import sys
 import numpy as np
 import pandas as pd
 
@@ -122,8 +123,7 @@ def fetch_in_chunks_market(
         except Exception as e:
             if "Date range is too large" in str(e):
                 print(f"Date range error {e}")
-                break
-            raise
+            sys.exit(f"error: Exception caught during request process\n {e} \n Program Terminated")
 
         # Reuse the boundary so no hourly intervals are skipped.
         current_start = current_end
@@ -200,8 +200,7 @@ def fetch_in_chunks_network(
         except Exception as e:
             if "Date range is too large" in str(e):
                 print(f"Date range error {e}")
-                break
-            raise
+            sys.exit(f"error: Exception caught during request process\n {e} \n Program Terminated")
 
         # Reuse the boundary so no hourly intervals are skipped.
         current_start = current_end
