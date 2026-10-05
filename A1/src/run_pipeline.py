@@ -13,7 +13,6 @@ import json
 from DataLoader import DataLoader
 from dotenv import load_dotenv
 from datetime import datetime
-from openelectricity.types import DataMetric, MarketMetric
 from pathlib import Path
 
 # Resolve paths from this file, independently of the launch directory.
