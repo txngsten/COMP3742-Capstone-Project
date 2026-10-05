@@ -47,7 +47,7 @@ def main():
     # Save to parquet
     RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
     df.to_parquet(RAW_OUTPUT_PATH, index=False, engine="pyarrow")
-    print(f"Saved {len(df):,} rows to {RAW_OUTPUT_PATH}")
+    print(f"Saved {len(df)} rows and {len(df.columns)} columns to {RAW_OUTPUT_PATH}")
 
     # Clean data
     df_clean = etl.clean()
@@ -55,7 +55,7 @@ def main():
     # Save cleaned df as parquet
     CLEAN_DATA_DIR.mkdir(parents=True, exist_ok=True)
     df_clean.to_parquet(CLEAN_OUTPUT_PATH, index=False, engine="pyarrow")
-    print(f"Saved {len(df_clean):,} cleaned rows to {CLEAN_OUTPUT_PATH}")
+    print(f"Saved {len(df_clean)} cleaned rows and {len(df_clean.columns)} columns to {CLEAN_OUTPUT_PATH}")
 
     # Store a report of what was done during cleaning.
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -63,13 +63,12 @@ def main():
         json.dumps(etl.cleaning_report, indent=2) + "\n"
     )
 
-    # Do cool feature engineering here ;) -- shiv replies: Yes, I will do that 'sad emoji, burnt out from work emoji'
     # Transform cleaned data into features
     df_transformed = etl.transform()
 
     # Save transformed df as parquet
     df_transformed.to_parquet(TRANSFORMED_OUTPUT_PATH, index=False, engine="pyarrow")
-    print(f"Saved {len(df_transformed):,} transformed rows to {TRANSFORMED_OUTPUT_PATH}")
+    print(f"Saved {len(df_transformed)} transformed rows and {len(df_transformed.columns)} columns to {TRANSFORMED_OUTPUT_PATH}")
 
     # Store a report of what the transform did.
     (REPORTS_DIR / "transform_report.json").write_text(
