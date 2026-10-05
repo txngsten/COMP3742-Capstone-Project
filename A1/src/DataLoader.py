@@ -9,6 +9,9 @@ Description:
 # Imports
 import pandas as pd
 import numpy as np
+
+from datetime import datetime
+
 from pandas.api.types import is_numeric_dtype
 
 from helper_functions import (
@@ -22,9 +25,7 @@ from helper_functions import (
     add_lag_features,
 )
 
-from datetime import datetime, timedelta
-from openelectricity import OEClient
-from openelectricity.types import DataMetric, MarketMetric
+
 
 class DataLoader:
     REQUIRED = {
