@@ -17,7 +17,7 @@ Please follow all steps in order to ensure pipeline runs smoothly :)
 
 ## Setup and Installation
 
-Ensure python is installed on your system, version 3.11 or later.
+Ensure python is installed on your system, version 3.11 or later. but <3.14
 
 From the repository root, change into the [src](src) directory:
 
