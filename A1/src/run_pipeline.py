@@ -82,7 +82,7 @@ def main():
     )
 
     # Perform exploratory modelling
-    df_modelled = etl.exploratory_modelling()
+    df_modelled: pd.DataFrame = etl.exploratory_modelling()
 
     # Save modelled df as parquet
     df_modelled.to_parquet(MODELLED_OUTPUT_PATH, index=False, engine="pyarrow")
