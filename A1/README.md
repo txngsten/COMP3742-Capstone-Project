@@ -25,7 +25,7 @@ Ensure python is installed on your system, version 3.11 or later. but <3.14
 From the repository root, change into the [src](src) directory:
 
 ```bash
-cd A1/src
+cd src
 ```
 
 Create and activate your virtual environment.
