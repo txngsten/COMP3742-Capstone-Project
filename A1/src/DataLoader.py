@@ -1,6 +1,6 @@
 """
-Student Names: Oliver Wuttke, Hans Pujalte, Shivansh Pant
-Student FANs: WUTT0019, PUJA0009, PANT0108
+Student Names: Oliver Wuttke, Hans Pujalte, Shivansh Pant, Matilda Alford
+Student FANs: WUTT0019, PUJA0009, PANT0108, ALFO0043
 File: DataLoader.py
 Date: 22-09-2026
 Description:
@@ -25,7 +25,10 @@ from helper_functions import (
     add_lag_features,
 )
 
-
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+from sklearn.ensemble import IsolationForest
 
 class DataLoader:
     REQUIRED = {
@@ -55,6 +58,8 @@ class DataLoader:
         self.cleaning_report = None
         self.transformed_data = pd.DataFrame()
         self.transform_report = None
+        self.modelled_data = pd.DataFrame()
+        self.modelling_report = None
 
     def fetch(self) -> None:
         """
@@ -274,3 +279,60 @@ class DataLoader:
         }
         self.transformed_data = data
         return data
+
+    def exploratory_modelling(self) -> pd.DataFrame:
+        """
+        Performs exploratory modelling on the transformed dataset.
+
+        Author: Matilda Alford - ALFO0043
+        
+                Returns:
+                    transformed dataframe with anomaly and exploratory cluster labels added
+        
+                Raises:
+                    ValueError: If transform() has not been run first
+        """
+
+        if self.transformed_data.empty:
+            raise ValueError('No transformed data found; run transform() before exploratory_modelling().')
+
+        data = self.transformed_data.copy(deep=True)
+
+        selected_features = [
+            "curtailment",
+            "curtailment_wind",
+            "demand",
+            "flow_exports",
+            "flow_imports",
+            "generation_renewable",
+            "price",
+            "renewable_proportion",
+            "emissions",
+        ]
+
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(data[selected_features])
+
+        pca = PCA(n_components=5)
+        X_pca = pca.fit_transform(X_scaled)
+
+        kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+
+        data['cluster'] = kmeans.fit_predict(X_pca)
+
+        isolation_forest = IsolationForest(contamination=0.02, random_state=42)
+
+        data['anomaly'] = isolation_forest.fit_predict(X_scaled)
+
+        self.modelling_report = {
+            "features_selected": selected_features,
+            "pca": 5,
+            "kmeans_clusters": 3,
+            "contamination": 0.02,
+            "cluster_counts": {int(k): int(v) for k, v in data["cluster"].value_counts().sort_index().items()},
+            "anomaly_counts": {int(k): int(v) for k, v in data["anomaly"].value_counts().sort_index().items()},
+        }
+
+        self.modelled_data = data
+        return data
+
