@@ -1,5 +1,8 @@
 # Artifact 1 Artificial Intelligence Capstone Project
 
+> [!IMPORTANT]
+> Full execution of pipeline will take around 7 minutes to fetch entire dataset. Please be patient :)
+
 This is the working repository for the A1 submission for Group P, COMP3742 Artificial Intelligence.
 
 **Group Members:**
