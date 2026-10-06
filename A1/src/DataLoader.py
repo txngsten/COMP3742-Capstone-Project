@@ -3,7 +3,7 @@ Student Names: Oliver Wuttke, Hans Pujalte, Shivansh Pant, Matilda Alford
 Student FANs: WUTT0019, PUJA0009, PANT0108, ALFO0043
 File: DataLoader.py
 Date: 22-09-2026
-Description:
+Description: Abstracts the data ingestion process behind a simple interface.
 """
 
 # Imports
