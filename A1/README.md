@@ -4,12 +4,12 @@ This is the working repository for the A1 submission for Group P, COMP3742 Artif
 
 **Group Members:**
 
-| **Name**      | **FAN**  |
-| ------------- | -------- |
-| Oliver Wuttke | WUTT0019 |
-| Hans Pujalte  | PUJA0009 |
-|               |          |
-|               |          |
+| **Name**       | **FAN**  |
+|----------------|----------|
+| Oliver Wuttke  | WUTT0019 |
+| Hans Pujalte   | PUJA0009 |
+| Shivansh Pant  | PANT0108 |
+| Matilda Alford | ALFO0043 |
 
 Each function contains an author in the comment stub which will contain the name and FAN of the group member who wrote it.
 
