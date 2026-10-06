@@ -1,6 +1,6 @@
 """
-Student Names: Oliver Wuttke, Hans Pujalte, Shivansh Pant
-Student FANs: WUTT0019, PUJA0009, PANT0108
+Student Names: Oliver Wuttke, Hans Pujalte, Shivansh Pant, Matilda Alford
+Student FANs: WUTT0019, PUJA0009, PANT0108, ALFO0043
 File: run_pipeline.py
 Date: 22-09-2026
 Description: Runs the automated data ingestion pipeline from start to finish.
