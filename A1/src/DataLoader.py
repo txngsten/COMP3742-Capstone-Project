@@ -280,59 +280,59 @@ class DataLoader:
         self.transformed_data = data
         return data
 
-def exploratory_modelling(self) -> pd.DataFrame:
-    """
-    Performs exploratory modelling on the transformed dataset.
+    def exploratory_modelling(self) -> pd.DataFrame:
+        """
+        Performs exploratory modelling on the transformed dataset.
 
-    Author: Matilda Alford - ALFO0043
-    
-            Returns:
-                transformed dataframe with anomaly and exploratory cluster labels added
-    
-            Raises:
-                ValueError: If transform() has not been run first
-    """
+        Author: Matilda Alford - ALFO0043
+        
+                Returns:
+                    transformed dataframe with anomaly and exploratory cluster labels added
+        
+                Raises:
+                    ValueError: If transform() has not been run first
+        """
 
-    if self.transformed_data.empty:
-        raise ValueError('No transformed data found; run transform() before exploratory_modelling().')
+        if self.transformed_data.empty:
+            raise ValueError('No transformed data found; run transform() before exploratory_modelling().')
 
-    data = self.transformed_data.copy(deep=True)
+        data = self.transformed_data.copy(deep=True)
 
-    selected_features = [
-        "curtailment",
-        "curtailment_wind",
-        "demand",
-        "flow_exports",
-        "flow_imports",
-        "generation_renewable",
-        "price",
-        "renewable_proportion",
-        "emissions",
-    ]
+        selected_features = [
+            "curtailment",
+            "curtailment_wind",
+            "demand",
+            "flow_exports",
+            "flow_imports",
+            "generation_renewable",
+            "price",
+            "renewable_proportion",
+            "emissions",
+        ]
 
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(data[selected_features])
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(data[selected_features])
 
-    pca = PCA(n_components=5)
-    X_pca = pca.fit_transform(X_scaled)
+        pca = PCA(n_components=5)
+        X_pca = pca.fit_transform(X_scaled)
 
-    kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+        kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
 
-    data['cluster'] = kmeans.fit_predict(X_pca)
+        data['cluster'] = kmeans.fit_predict(X_pca)
 
-    isolation_forest = IsolationForest(contamination=0.02, random_state=42)
+        isolation_forest = IsolationForest(contamination=0.02, random_state=42)
 
-    data['anomaly'] = isolation_forest.fit_predict(X_scaled)
+        data['anomaly'] = isolation_forest.fit_predict(X_scaled)
 
-    self.modelling_report = {
-        "features_selected": selected_features,
-        "pca": 5,
-        "kmeans_clusters": 3,
-        "contamination": 0.02,
-        "cluster_counts": {int(k): int(v) for k, v in data["cluster"].value_counts().sort_index().items()},
-        "anomaly_counts": {int(k): int(v) for k, v in data["anomaly"].value_counts().sort_index().items()},
-    }
+        self.modelling_report = {
+            "features_selected": selected_features,
+            "pca": 5,
+            "kmeans_clusters": 3,
+            "contamination": 0.02,
+            "cluster_counts": {int(k): int(v) for k, v in data["cluster"].value_counts().sort_index().items()},
+            "anomaly_counts": {int(k): int(v) for k, v in data["anomaly"].value_counts().sort_index().items()},
+        }
 
-    self.modelled_data = data
-    return data
+        self.modelled_data = data
+        return data
 

@@ -32,6 +32,7 @@ CLEAN_DATA_DIR = PROJECT_DIR / "data" / "processed"
 CLEAN_OUTPUT_PATH = CLEAN_DATA_DIR / "electricity_cleaned.parquet"
 TRANSFORMED_OUTPUT_PATH = CLEAN_DATA_DIR / "electricity_transformed.parquet"
 REPORTS_DIR = PROJECT_DIR / "reports"
+MODELLED_OUTPUT_PATH = CLEAN_DATA_DIR / "electricity_modelled.parquet"
 
 
 def main():
@@ -72,6 +73,18 @@ def main():
     # Store a report of what the transform did.
     (REPORTS_DIR / "transform_report.json").write_text(
         json.dumps(etl.transform_report, indent=2) + "\n"
+    )
+
+    # Perform exploratory modelling
+    df_modelled = etl.exploratory_modelling()
+
+    # Save modelled df as parquet
+    df_modelled.to_parquet(MODELLED_OUTPUT_PATH, index=False, engine="pyarrow")
+    print(f"Saved {len(df_modelled)} modelled rows and {len(df_modelled.columns)} columns to {MODELLED_OUTPUT_PATH}")
+
+    # Store a report of what the modelling did.
+    (REPORTS_DIR / "modelling_report.json").write_text(
+        json.dumps(etl.modelling_report, indent=2) + "\n"
     )
 
 if __name__ == "__main__":
