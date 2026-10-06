@@ -49,6 +49,11 @@ echo "OPENELECTRICITY_API_KEY=<PASTE YOUR API KEY HERE>" > .env
 
 Make sure .env is UTF-8 or else python-dotenv will throw an error.
 
+To run the pipline simply run:
+```bash
+python run_pipline.py
+```
+
 ## Installing New Dependencies
 
 Please make sure to update the [requirements.txt](src/requirements.txt) after installing new packages via:
