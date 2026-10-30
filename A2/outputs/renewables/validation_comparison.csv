@@ -1,0 +1,6 @@
+model,window,training_rows,validation_rows,mae_mw,rmse_mw
+gradient_boosting,recent_history,43800,8760,568.5137316322928,787.2679310453492
+gradient_boosting,full_history,207737,8760,583.5120922087398,804.2629584190139
+random_forest,recent_history,43800,8760,588.9296225443215,816.3763751950554
+random_forest,full_history,207737,8760,589.5954855176426,816.9830700749368
+same_hour_yesterday,previous_day,0,8760,603.0158754845082,828.5209450461573

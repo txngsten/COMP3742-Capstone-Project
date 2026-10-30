@@ -8,3 +8,5 @@
 /A1/reports/
 __pycache__/
 /A1/.venv/
+/A1/src/.venv313/
+.vscode/

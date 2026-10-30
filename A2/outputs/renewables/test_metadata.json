@@ -1,0 +1,8 @@
+{
+  "first_issue": "2025-01-01T00:00:00+10:00",
+  "last_issue": "2026-09-22T23:00:00+10:00",
+  "forecast_origins": 15120,
+  "excluded_origins": 0,
+  "model_file": "final_model.joblib",
+  "low_generation_threshold_mw": 771.576357
+}
