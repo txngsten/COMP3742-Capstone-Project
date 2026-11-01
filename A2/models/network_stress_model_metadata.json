@@ -1,0 +1,190 @@
+{
+  "artifact_version": 1,
+  "created_utc": "2026-11-01T08:25:45.460986+00:00",
+  "model_type": "XGBClassifier",
+  "selected_candidate": "XGBoost",
+  "selection_metric": "validation_macro_f1",
+  "feature_columns": [
+    "curtailment",
+    "curtailment_solar_utility",
+    "curtailment_wind",
+    "demand",
+    "demand_gross",
+    "flow_exports",
+    "flow_imports",
+    "generation_renewable",
+    "generation_renewable_with_storage",
+    "price",
+    "renewable_proportion",
+    "renewable_with_storage_proportion",
+    "emissions",
+    "power",
+    "curtailment_negative",
+    "hour_sin",
+    "hour_cos",
+    "day_of_week_sin",
+    "day_of_week_cos",
+    "month_sin",
+    "month_cos",
+    "is_weekend",
+    "price_lag_1h",
+    "price_lag_24h",
+    "price_lag_168h",
+    "price_rolling_mean_24h",
+    "price_rolling_std_24h",
+    "demand_lag_1h",
+    "demand_lag_24h",
+    "demand_lag_168h",
+    "demand_rolling_mean_24h",
+    "demand_rolling_std_24h",
+    "generation_renewable_lag_1h",
+    "generation_renewable_lag_24h",
+    "generation_renewable_lag_168h",
+    "generation_renewable_rolling_mean_24h",
+    "generation_renewable_rolling_std_24h",
+    "curtailment_lag_1h",
+    "curtailment_lag_24h",
+    "curtailment_lag_168h",
+    "curtailment_rolling_mean_24h",
+    "curtailment_rolling_std_24h"
+  ],
+  "class_names": {
+    "0": "low",
+    "1": "medium",
+    "2": "high",
+    "3": "critical"
+  },
+  "prediction_horizon_hours": 1,
+  "split_fractions": {
+    "train": 0.6,
+    "validation": 0.2,
+    "test": 0.2
+  },
+  "partition_boundaries": {
+    "training_target_start": "2020-09-15 01:00:00+10:00",
+    "training_target_end": "2024-04-26 23:00:00+10:00",
+    "validation_target_start": "2024-04-27 00:00:00+10:00",
+    "validation_target_end": "2025-07-10 23:00:00+10:00",
+    "test_target_start": "2025-07-11 00:00:00+10:00",
+    "test_target_end": "2026-09-23 23:00:00+10:00"
+  },
+  "excluded_imputed_rows": 8,
+  "target_definition": {
+    "quantiles": [
+      0.75,
+      0.9,
+      0.97
+    ],
+    "thresholds": {
+      "demand_gross": {
+        "elevated_75th": 9258.553131499999,
+        "severe_90th": 10190.188576100001,
+        "extreme_97th": 11322.356350209993
+      },
+      "price": {
+        "elevated_75th": 120.44812499999999,
+        "severe_90th": 227.47574970000005,
+        "extreme_97th": 363.11920820999995
+      },
+      "flow_imports": {
+        "elevated_75th": 1003.6569365,
+        "severe_90th": 1263.1405719,
+        "extreme_97th": 1553.2644931399998
+      },
+      "curtailment": {
+        "elevated_75th": 51.999806250000006,
+        "severe_90th": 203.0308497000001,
+        "extreme_97th": 417.1260104599981
+      },
+      "flow_exports": {
+        "elevated_75th": 217.94881025,
+        "severe_90th": 414.91225360000044,
+        "extreme_97th": 603.7997547099999
+      },
+      "renewable_with_storage_proportion": {
+        "elevated_75th": 37.71,
+        "severe_90th": 52.38,
+        "extreme_97th": 64.61889999999991
+      }
+    },
+    "adequacy_weights": {
+      "demand_gross": 0.4,
+      "price": 0.35,
+      "flow_imports": 0.25
+    },
+    "congestion_weights": {
+      "curtailment": 0.6,
+      "flow_exports": 0.25,
+      "renewable_with_storage_proportion": 0.15
+    },
+    "score_bins": [
+      "-inf",
+      0.75,
+      1.5,
+      2.25,
+      "inf"
+    ]
+  },
+  "validation_metrics": {
+    "Random Forest": {
+      "accuracy": 0.7638257575757575,
+      "balanced_accuracy": 0.6996421487248983,
+      "macro_f1": 0.7004673801633594,
+      "weighted_f1": 0.76667420928289,
+      "ordinal_mae": 0.2505681818181818,
+      "quadratic_kappa": 0.8629803298893308,
+      "critical_recall": 0.7232375979112271
+    },
+    "XGBoost": {
+      "accuracy": 0.7828598484848485,
+      "balanced_accuracy": 0.7296631633072825,
+      "macro_f1": 0.727658475630451,
+      "weighted_f1": 0.7874314507672109,
+      "ordinal_mae": 0.22670454545454546,
+      "quadratic_kappa": 0.879119883492367,
+      "critical_recall": 0.7302001740644039
+    }
+  },
+  "final_test_metrics": {
+    "accuracy": 0.8107007575757575,
+    "balanced_accuracy": 0.7589526314316335,
+    "macro_f1": 0.7527468748747663,
+    "weighted_f1": 0.8122417886709191,
+    "ordinal_mae": 0.20009469696969698,
+    "quadratic_kappa": 0.9102346192698791,
+    "critical_recall": 0.8915151515151515
+  },
+  "final_test_confusion_matrix": [
+    [
+      4664,
+      600,
+      30,
+      5
+    ],
+    [
+      272,
+      1804,
+      277,
+      36
+    ],
+    [
+      5,
+      332,
+      622,
+      263
+    ],
+    [
+      0,
+      33,
+      146,
+      1471
+    ]
+  ],
+  "library_versions": {
+    "pandas": "3.0.6",
+    "numpy": "2.4.6",
+    "scikit_learn": "1.9.1",
+    "xgboost": "3.4.1",
+    "joblib": "1.6.0"
+  }
+}

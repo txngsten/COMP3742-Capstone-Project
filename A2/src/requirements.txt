@@ -1,0 +1,9 @@
+joblib==1.6.0
+matplotlib==3.11.2
+numpy==2.4.6
+pandas==3.0.6
+pyarrow==25.0.1
+pyswip==0.3.3
+scikit-learn==1.9.1
+seaborn==0.13.2
+xgboost==3.4.1
