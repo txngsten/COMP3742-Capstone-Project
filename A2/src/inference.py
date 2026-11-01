@@ -1,17 +1,10 @@
-# Student Name: [Add your name]
-# Student FAN: [Add your FAN]
-# File: inference.py
-# Date: 01-11-2026
-# Description: Run ML inference and symbolic Prolog reasoning for network stress.
-# Usage: python inference.py [--timestamp TIMESTAMP] [--reserve-margin-bps BPS]
-# Licence: For COMP3742 assessment use.
 
-"""Integrated inference pipeline for the hybrid network-stress system."""
+# File: inference.py
+# Description: ML inference and Prolog reasoning for network stress.
 
 from __future__ import annotations
 
 import argparse
-import math
 import sys
 from pathlib import Path
 from typing import Any
@@ -20,251 +13,198 @@ import joblib
 import pandas as pd
 
 
-RUNTIME_PREDICATES = (
-    "predicted_risk",
-    "prediction_confidence",
-    "demand",
-    "gross_demand",
-    "imports",
-    "exports",
-    "import_share",
-    "electricity_price",
-    "curtailment",
-    "renewable_percentage",
-    "reserve_margin",
-)
-THRESHOLD_PREDICATES = {
-    "price_severe_threshold": ("price", "severe_90th"),
-    "price_extreme_threshold": ("price", "extreme_97th"),
-    "curtailment_severe_threshold": ("curtailment", "severe_90th"),
-    "curtailment_extreme_threshold": ("curtailment", "extreme_97th"),
-    "renewable_severe_threshold": (
-        "renewable_with_storage_proportion",
-        "severe_90th",
-    ),
-}
-
-
 def find_project_root(start: Path | None = None) -> Path:
-    """Find the repository root from the current location."""
+    """Find the project root directory."""
     start = (start or Path.cwd()).resolve()
-    for base in (start, *start.parents):
-        if (base / "A1" / "src" / "DataLoader.py").is_file():
-            return base
-    raise FileNotFoundError("Could not locate the COMP3742 project root.")
+
+    for directory in (start, *start.parents):
+        if (directory / "A1" / "src" / "DataLoader.py").is_file():
+            return directory
+
+    raise FileNotFoundError("Could not locate project root.")
 
 
-def normalise_timestamp(timestamp_text: str, timestamps: pd.Series) -> pd.Timestamp:
-    """Parse input and align a naive timestamp with the dataset timezone."""
-    requested = pd.Timestamp(timestamp_text)
-    data_timezone = timestamps.dt.tz
-    if data_timezone is not None and requested.tzinfo is None:
-        requested = requested.tz_localize(data_timezone)
-    elif data_timezone is not None:
-        requested = requested.tz_convert(data_timezone)
+def normalise_timestamp(
+    timestamp: str,
+    timestamps: pd.Series,
+) -> pd.Timestamp:
+    """Match an input timestamp to the dataset timezone."""
+    requested = pd.Timestamp(timestamp)
+    timezone = timestamps.dt.tz
+
+    if timezone is not None:
+        if requested.tzinfo is None:
+            requested = requested.tz_localize(timezone)
+        else:
+            requested = requested.tz_convert(timezone)
+    elif requested.tzinfo is not None:
+        raise ValueError(
+            "Dataset timestamps are timezone-naive. "
+            "Enter a timestamp without a timezone."
+        )
+
     return requested
 
 
-def get_numeric_fact(row: pd.Series, column_name: str) -> float:
-    """Return a finite numeric operational value from an observation."""
-    if column_name not in row.index:
-        raise KeyError(f"Operational column not found: {column_name}")
-    value = float(row[column_name])
-    if not math.isfinite(value):
-        raise ValueError(f"{column_name} contains an invalid value: {value}")
-    return value
-
-
-def extract_operational_facts(
-    observation: pd.DataFrame,
-    predicted_class: str,
-    confidence: float,
-    reserve_margin: float | None = None,
-) -> dict[str, float | str]:
-    """Extract current measured conditions for the symbolic inference layer."""
-    row = observation.iloc[0]
-    gross_demand = get_numeric_fact(row, "demand_gross")
-    imports = get_numeric_fact(row, "flow_imports")
-    facts: dict[str, float | str] = {
-        "predicted_risk": predicted_class,
-        "prediction_confidence": confidence,
-        "demand": get_numeric_fact(row, "demand"),
-        "gross_demand": gross_demand,
-        "imports": imports,
-        "exports": get_numeric_fact(row, "flow_exports"),
-        "import_share": imports / gross_demand if gross_demand > 0 else 0.0,
-        "electricity_price": get_numeric_fact(row, "price"),
-        "curtailment": max(get_numeric_fact(row, "curtailment"), 0.0),
-        "renewable_percentage": get_numeric_fact(
-            row, "renewable_with_storage_proportion"
-        ),
-    }
-    if reserve_margin is not None:
-        if not math.isfinite(reserve_margin):
-            raise ValueError("Reserve margin must be finite when supplied.")
-        facts["reserve_margin"] = reserve_margin
-    return facts
-
-
 def load_prolog_class() -> Any:
-    """Import PySwip without forwarding application CLI flags to SWI-Prolog."""
-    original_arguments = sys.argv[:]
+    """Import PySwip without passing CLI arguments to SWI-Prolog."""
+    original_args = sys.argv[:]
+
     try:
-        sys.argv = [original_arguments[0]]
+        sys.argv = [original_args[0]]
         from pyswip import Prolog
     finally:
-        sys.argv = original_arguments
+        sys.argv = original_args
+
     return Prolog
 
 
-def assert_runtime_facts(
+def query_values(
     prolog: Any,
-    case_id: str,
-    facts: dict[str, float | str],
-) -> None:
-    """Clear previous case facts and assert the current inference facts."""
-    for predicate in RUNTIME_PREDICATES:
-        list(prolog.query(f"retractall({predicate}(_, _))"))
-    for predicate, value in facts.items():
-        if isinstance(value, str):
-            prolog.assertz(f"{predicate}({case_id}, {value})")
-        else:
-            prolog.assertz(f"{predicate}({case_id}, {value:.12g})")
-
-
-def assert_threshold_facts(prolog: Any, bundle: dict[str, Any]) -> None:
-    """Assert model-versioned training thresholds used by symbolic rules."""
-    thresholds = bundle.get("target_thresholds")
-    if not thresholds:
-        raise ValueError("The saved model bundle does not contain target thresholds.")
-    for predicate, (feature, severity) in THRESHOLD_PREDICATES.items():
-        try:
-            value = float(thresholds[feature][severity])
-        except KeyError as error:
-            raise ValueError(
-                f"Saved model threshold missing for {feature}/{severity}."
-            ) from error
-        list(prolog.query(f"retractall({predicate}(_))"))
-        prolog.assertz(f"{predicate}({value:.12g})")
-
-
-def query_values(prolog: Any, query: str, variable: str) -> list[str]:
-    """Return unique Prolog variable bindings while preserving rule order."""
-    values: list[str] = []
-    for result in prolog.query(query):
-        value = str(result[variable])
-        if value not in values:
-            values.append(value)
-    return values
+    query: str,
+    variable: str,
+) -> list[str]:
+    """Retrieve unique results from a Prolog query."""
+    return list(dict.fromkeys(
+        str(result[variable])
+        for result in prolog.query(query)
+    ))
 
 
 def run_inference(
     data_path: Path,
     model_path: Path,
     rules_path: Path,
-    timestamp_text: str,
-    reserve_margin: float | None = None,
+    timestamp: str,
 ) -> dict[str, Any]:
-    """Run one complete historical-observation ML-to-Prolog inference."""
-    for required_path in (data_path, model_path, rules_path):
-        if not required_path.is_file():
-            raise FileNotFoundError(f"Required file not found: {required_path}")
+    """Predict network stress and generate Prolog recommendations."""
 
-    data = pd.read_parquet(data_path).sort_values("timestamp").reset_index(drop=True)
-    requested_timestamp = normalise_timestamp(timestamp_text, data["timestamp"])
-    observation = data.loc[data["timestamp"] == requested_timestamp].iloc[:1]
+    # 1. Load electricity data
+    data = pd.read_parquet(data_path)
+
+    requested_timestamp = normalise_timestamp(
+        timestamp,
+        data["timestamp"],
+    )
+
+    observation = data.loc[
+        data["timestamp"] == requested_timestamp
+    ].iloc[:1]
+
     if observation.empty:
-        raise ValueError(f"No observation found for {requested_timestamp}")
-
-    bundle = joblib.load(model_path)
-    model = bundle["model"]
-    feature_columns = list(bundle["feature_columns"])
-    class_names = {int(key): value for key, value in bundle["class_names"].items()}
-    missing_features = sorted(set(feature_columns).difference(observation.columns))
-    if missing_features:
-        raise ValueError(f"Inference data is missing features: {missing_features}")
-
-    model_input = observation.reindex(columns=feature_columns)
-    predicted_number = int(model.predict(model_input)[0])
-    probabilities = model.predict_proba(model_input)[0]
-    probability_by_class = {
-        class_names[int(class_number)]: float(probability)
-        for class_number, probability in zip(model.classes_, probabilities)
-    }
-    predicted_class = class_names[predicted_number]
-    confidence = probability_by_class[predicted_class]
-    facts = extract_operational_facts(
-        observation, predicted_class, confidence, reserve_margin
-    )
-
-    prolog = load_prolog_class()()
-    prolog.consult(str(rules_path.resolve()).replace("\\", "/"))
-    case_id = "current_case"
-    assert_threshold_facts(prolog, bundle)
-    assert_runtime_facts(prolog, case_id, facts)
-    final_risks = query_values(
-        prolog, f"final_risk({case_id}, Risk)", "Risk"
-    )
-    if len(final_risks) != 1:
-        raise RuntimeError(
-            f"Expected one final risk, received {len(final_risks)}: {final_risks}"
+        raise ValueError(
+            f"No observation found for {requested_timestamp}"
         )
 
+    if (
+        "was_imputed" in observation.columns
+        and bool(observation["was_imputed"].iloc[0])
+    ):
+        raise ValueError("Selected observation was imputed.")
+
+    # 2. Load trained model
+    bundle = joblib.load(model_path)
+
+    model = bundle["model"]
+    features = bundle["feature_columns"]
+    class_names = bundle["class_names"]
+
+    # 3. Predict future stress
+    model_input = observation[features]
+
+    prediction = int(model.predict(model_input)[0])
+    predicted_risk = str(class_names[prediction])
+
+    horizon = bundle["prediction_horizon_hours"]
+
+    # 4. Extract relevant electricity observations
+    row = observation.iloc[0]
+
+    imports = float(row["flow_imports"])
+    gross_demand = float(row["demand_gross"])
+    curtailment = max(float(row["curtailment"]), 0.0)
+
+    import_share = (
+        imports / gross_demand
+        if gross_demand > 0
+        else 0.0
+    )
+
+    # 5. Initialise Prolog
+    Prolog = load_prolog_class()
+    prolog = Prolog()
+
+    prolog.consult(str(rules_path.resolve()))
+
+    # 6. Assert ML prediction and operational facts
+    prolog.assertz(f"predicted_risk(t1, {predicted_risk})")
+    prolog.assertz(f"import_share(t1, {import_share})")
+    prolog.assertz(f"curtailment(t1, {curtailment})")
+
+    # 7. Query symbolic rules
+    drivers = query_values(
+        prolog,
+        "stress_driver(t1, Driver)",
+        "Driver",
+    )
+
+    recommendations = query_values(
+        prolog,
+        "recommendation(t1, Action)",
+        "Action",
+    )
+
+    # 8. Return subsystem results
     return {
         "timestamp": str(requested_timestamp),
-        "prediction_horizon_hours": int(bundle["prediction_horizon_hours"]),
-        "ml_prediction": predicted_class,
-        "ml_confidence": confidence,
-        "probabilities": probability_by_class,
-        "operational_facts": facts,
-        "stress_driver": query_values(
-            prolog, f"stress_driver({case_id}, Driver)", "Driver"
-        ),
-        "rule_reasons": query_values(prolog, f"reason({case_id}, Reason)", "Reason"),
-        "final_risk": final_risks[0],
-        "interpretations": query_values(
-            prolog, f"interpretation({case_id}, Text)", "Text"
-        ),
-        "recommendations": query_values(
-            prolog, f"recommendation({case_id}, Action)", "Action"
-        ),
+        "prediction_horizon_hours": horizon,
+        "predicted_stress": predicted_risk,
+        "stress_drivers": drivers,
+        "recommendations": recommendations,
     }
 
 
 def print_result(result: dict[str, Any]) -> None:
-    """Print a concise trace of the hybrid inference."""
-    print(f"Observation time: {result['timestamp']}")
+    """Display the ML prediction and symbolic recommendations."""
+
+    print("\n--- Network Stress Prediction ---")
+    print(f"Observation: {result['timestamp']}")
+
     print(
-        f"ML prediction (+{result['prediction_horizon_hours']}h): "
-        f"{result['ml_prediction']} ({result['ml_confidence']:.2%})"
+        f"Predicted stress "
+        f"(+{result['prediction_horizon_hours']}h): "
+        f"{result['predicted_stress']}"
     )
-    print("\nOperational facts:")
-    for name, value in result["operational_facts"].items():
-        print(f"- {name}: {value}")
-    print(f"\nSymbolic driver: {', '.join(result['stress_driver'])}")
-    print(f"Rule reasons: {', '.join(result['rule_reasons'])}")
-    print(f"Final hybrid risk: {result['final_risk']}")
-    print(f"Interpretation: {', '.join(result['interpretations'])}")
-    print("Recommendations:")
-    for action in result["recommendations"]:
-        print(f"- {action}")
+
+    print("\nStress drivers:")
+    if result["stress_drivers"]:
+        for driver in result["stress_drivers"]:
+            print(f"- {driver}")
+    else:
+        print("- None identified")
+
+    print("\nRecommendations:")
+    if result["recommendations"]:
+        for action in result["recommendations"]:
+            print(f"- {action}")
+    else:
+        print("- None available")
 
 
 def parse_arguments() -> argparse.Namespace:
     """Parse command-line arguments."""
+
     project_root = find_project_root()
+
     parser = argparse.ArgumentParser(
-        description="Run one-hour-ahead hybrid network-stress inference."
+        description="Predict network stress using ML and Prolog."
     )
-    parser.add_argument("--timestamp", help="Prediction-origin timestamp.")
+
     parser.add_argument(
-        "--reserve-margin-bps",
-        type=int,
-        help=(
-            "Optional externally supplied reserve margin in basis points "
-            "(for example, 450 means 4.5 percent)."
-        ),
+        "--timestamp",
+        help="Observation timestamp.",
     )
+
     parser.add_argument(
         "--data",
         type=Path,
@@ -276,37 +216,51 @@ def parse_arguments() -> argparse.Namespace:
             / "electricity_transformed.parquet"
         ),
     )
+
     parser.add_argument(
         "--model",
         type=Path,
-        default=project_root / "A2" / "models" / "network_stress_model.joblib",
+        default=(
+            project_root
+            / "A2"
+            / "models"
+            / "network_stress_model.joblib"
+        ),
     )
+
     parser.add_argument(
         "--rules",
         type=Path,
-        default=project_root / "A2" / "src" / "stress_rules.pl",
+        default=(
+            project_root
+            / "A2"
+            / "src"
+            / "stress_rules.pl"
+        ),
     )
+
     return parser.parse_args()
 
 
 def main() -> None:
-    """Run the command-line hybrid inference pipeline."""
-    arguments = parse_arguments()
-    timestamp_text = arguments.timestamp
-    if not timestamp_text:
-        timestamp_text = input("Enter an observation timestamp: ").strip()
-    reserve_margin = (
-        arguments.reserve_margin_bps / 100
-        if arguments.reserve_margin_bps is not None
-        else None
-    )
+    """Run the inference pipeline."""
+
+    args = parse_arguments()
+
+    timestamp = args.timestamp
+
+    if not timestamp:
+        timestamp = input(
+            "Enter observation timestamp: "
+        ).strip()
+
     result = run_inference(
-        arguments.data.resolve(),
-        arguments.model.resolve(),
-        arguments.rules.resolve(),
-        timestamp_text,
-        reserve_margin,
+        data_path=args.data.resolve(),
+        model_path=args.model.resolve(),
+        rules_path=args.rules.resolve(),
+        timestamp=timestamp,
     )
+
     print_result(result)
 
 
