@@ -58,7 +58,7 @@ Generate A2's transformed dataset:
 python A1_data_pipeline/run_pipeline.py
 ```
 
-Train both implemented subsystems (demand and network stress):
+Train both implemented subsystems:
 
 ```bash
 python training_pipeline.py --input A2/data/processed/electricity_transformed.parquet
