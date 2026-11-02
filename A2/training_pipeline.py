@@ -1,23 +1,15 @@
 """
 Student Names: Oliver Wuttke, Hans Pujalte, Shivansh Pant, Matilda Alford
 Student FANs: WUTT0019, PUJA0009, PANT0108, ALFO0043
+Date: 02-11-2026
 File: training_pipeline.py
 Description: Train all implemented A2 models on the transformed electricity data.
 """
 
 import argparse
 import sys
-from pathlib import Path
 
 import pandas as pd
-
-A2_DIR = Path(__file__).resolve().parent
-
-# Allow this script to run from either the repository root or A2.
-if __package__ in (None, ""):
-    sys.path.insert(0, str(A2_DIR.parent))
-
-
 
 def main():
     """Load the shared dataset and train each implemented model."""
@@ -37,8 +29,8 @@ def main():
         )
 
     # Load model dependencies only after the input argument is validated.
-    from A2.models.DemandModel import DemandModel
-    from A2.models.NetworkStressModel import NetworkStressModel
+    from models.DemandModel import DemandModel
+    from models.NetworkStressModel import NetworkStressModel
 
     # Load and sort the dataset once for both models.
     df = pd.read_parquet(TRAINING_PATH).set_index("timestamp").sort_index()
@@ -47,7 +39,7 @@ def main():
     demand_model = DemandModel()
     demand_model.train_eval(
         training_set=df,
-        model_path=str(A2_DIR / "demand_gp.npz"),
+        model_path="demand_gp.npz",
     )
 
     # Compare network-stress classifiers and save the selected model.
