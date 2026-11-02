@@ -5,6 +5,7 @@ File: training_pipeline.py
 Date: 02-11-2026
 Description: Runs the automated training pipeline.
 """
+
 import sys
 import argparse
 
@@ -15,6 +16,7 @@ from models.NetworkStressModel import NetworkStressModel
 from models.PriceModel import PriceModel
 from models.RenewableModel import RenewableModel
 
+# CLI arg parser for inputting training set path
 parser = argparse.ArgumentParser()
 parser.add_argument("--input", type=str, help="path to training dataset")
 args = parser.parse_args()
