@@ -9,3 +9,5 @@
 __pycache__/
 /A1/.venv/
 /A2/data/
+/A2/.venv/
+/A2/.env
