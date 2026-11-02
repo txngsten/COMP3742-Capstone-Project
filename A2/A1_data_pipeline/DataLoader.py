@@ -14,16 +14,29 @@ from datetime import datetime, timedelta, timezone
 
 from pandas.api.types import is_numeric_dtype
 
-from .helper_functions import (
-    fetch_in_chunks_market,
-    fetch_in_chunks_network,
-    trim_to_curtailment_coverage,
-    drop_redundant_columns,
-    fill_short_gaps,
-    flag_negative_curtailment,
-    add_time_features,
-    add_lag_features,
-)
+try:
+    from .helper_functions import (
+        fetch_in_chunks_market,
+        fetch_in_chunks_network,
+        trim_to_curtailment_coverage,
+        drop_redundant_columns,
+        fill_short_gaps,
+        flag_negative_curtailment,
+        add_time_features,
+        add_lag_features,
+    )
+    
+except ImportError:
+    from helper_functions import (
+        fetch_in_chunks_market,
+        fetch_in_chunks_network,
+        trim_to_curtailment_coverage,
+        drop_redundant_columns,
+        fill_short_gaps,
+        flag_negative_curtailment,
+        add_time_features,
+        add_lag_features,
+    )
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
