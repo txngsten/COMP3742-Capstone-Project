@@ -23,7 +23,7 @@ load_dotenv(PROJECT_DIR / "src" / ".env")
 
 # Pipeline constants
 API_KEY: str | None = os.getenv("OPENELECTRICITY_API_KEY")
-START_DATE: datetime = datetime(2000, 1, 1)
+START_DATE: datetime = datetime(2020, 1, 1)
 END_DATE: datetime = datetime(2026, 9, 24)
 
 # Directory
