@@ -2,33 +2,60 @@
 Student Names: Oliver Wuttke, Hans Pujalte, Shivansh Pant, Matilda Alford
 Student FANs: WUTT0019, PUJA0009, PANT0108, ALFO0043
 File: inference.py
-Date: 02-11-2026
-Description: Performs one-off inference on pre-trained models.
+Description: Run all implemented models on the latest electricity data.
 """
+
 import os
-import pandas as pd
+import sys
 from datetime import datetime
+from pathlib import Path
+
 from dotenv import load_dotenv
-from A1_data_pipeline.DataLoader import DataLoader
 
-from models.DemandModel import DemandModel
-from models.NetworkStressModel import NetworkStressModel
-from models.PriceModel import PriceModel
-from models.RenewableModel import RenewableModel
+A2_DIR = Path(__file__).resolve().parent
 
-# Load in env variables
-load_dotenv()
-API_KEY: str | None = os.getenv("OPENELECTRICITY_API_KEY")
+# Allow this script to run from either the repository root or A2.
+if __package__ in (None, ""):
+    sys.path.insert(0, str(A2_DIR.parent))
 
-# Init dataloader
-dl = DataLoader(datetime.now(), datetime.now(), API_KEY)
-df = dl.fetch_instance()
+from A2.A1_data_pipeline.DataLoader import DataLoader
+from A2.models.DemandModel import DemandModel
+from A2.models.NetworkStressModel import NetworkStressModel, print_result
 
-# To break up the fetching output from the actual inference
-print('===============================================')
 
-# Load in models and perform inference
-demand_model = DemandModel()
-demand_model.inference(instance=df.set_index("timestamp"))
+def main():
+    """Fetch shared observations and run each implemented model."""
+    # Load the API key without overriding an existing environment value.
+    load_dotenv(A2_DIR / ".env")
+    api_key = os.getenv("OPENELECTRICITY_API_KEY")
+    if not api_key:
+        raise ValueError(
+            "Set OPENELECTRICITY_API_KEY in the environment or A2/.env."
+        )
 
-# Other model inference...
+    # Fetch and transform the history once for all models.
+    now = datetime.now()
+    loader = DataLoader(now, now, api_key)
+    history = (
+        loader.fetch_instance()
+        .set_index("timestamp")
+        .sort_index()
+    )
+
+    # Predict next-hour demand using its saved model parameters.
+    demand_model = DemandModel()
+    demand_model.inference(
+        instance=history,
+        model_path=str(A2_DIR / "demand_gp.npz"),
+    )
+
+    # Predict next-hour network stress and display its recommendations.
+    network_stress_model = NetworkStressModel()
+    result = network_stress_model.inference(instance=history)
+    print_result(result)
+
+    # Add price and renewable inference here when implemented.
+
+
+if __name__ == "__main__":
+    main()
