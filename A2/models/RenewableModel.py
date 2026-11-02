@@ -14,7 +14,7 @@ import pandas as pd
 class RenewableModel:
     def __init__(self, model_params: npt.NDArray = np.empty(0)):
         self.model_params: npt.NDArray = model_params
-        self.can_predict: bool = model_params.size != 0
+        self.model = ...
 
     def train(self, training_set: pd.DataFrame):
         ...
