@@ -49,7 +49,7 @@ Make sure .env is UTF-8 or else python-dotenv will throw an error.
 ## Training Pipeline
 First step is retrieving the training dataset by running:
 ```bash
-python A1_data_pipeline/run_pipeline
+python A1_data_pipeline/run_pipeline.py
 ```
 
 Now we can run our training pipeline:
