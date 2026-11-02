@@ -36,6 +36,7 @@ def main():
     df = pd.read_parquet(TRAINING_PATH).set_index("timestamp").sort_index()
 
     # Train and evaluate demand prediction, then save its parameters.
+    print('========== Next Hour Demand GP-Regression Results =========')
     demand_model = DemandModel()
     demand_model.train_eval(
         training_set=df,
