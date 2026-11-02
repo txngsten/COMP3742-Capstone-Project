@@ -10,11 +10,11 @@ Description: Abstracts the data ingestion process behind a simple interface.
 import pandas as pd
 import numpy as np
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from pandas.api.types import is_numeric_dtype
 
-from helper_functions import (
+from .helper_functions import (
     fetch_in_chunks_market,
     fetch_in_chunks_network,
     trim_to_curtailment_coverage,
@@ -336,3 +336,39 @@ class DataLoader:
         self.modelled_data = data
         return data
 
+    def fetch_instance(self) -> pd.DataFrame:
+        """
+        Fetches the most recent data and applies validation and feature transforms
+        Does not modify the loader's stored datasets.
+        Author: Oliver Wuttke - WUTT0019
+
+        Returns:
+            Dataframe of the latest n_rows transformed rows.
+
+        Raises:
+            ValueError: If validation fails or too few rows remain after the warm-up.
+        """
+        # Fetch up to the current hour in network time
+        end = datetime.now(timezone(timedelta(hours=10))).replace(
+            minute=0, second=0, microsecond=0, tzinfo=None)
+        start = end - timedelta(days=16)
+
+        market_df = fetch_in_chunks_market(start, end, "1h", 30, self.api_key)
+        network_df = fetch_in_chunks_network(start, end, "1h", 30, self.api_key)
+        data = market_df.merge(network_df, on="timestamp", how="outer")
+
+        # Drop trailing hours whose demand hasn't been published yet
+        data = data.sort_values("timestamp").reset_index(drop=True)
+        data = data.loc[:data["demand"].last_valid_index()]
+        self._validate_data(data)
+
+        # Same transforms as training
+        data, _ = drop_redundant_columns(data)
+        data, _, _ = fill_short_gaps(data, self.MAX_GAP_HOURS)
+        data, _ = flag_negative_curtailment(data)
+        data, _ = add_time_features(data)
+        data, _, _ = add_lag_features(data, self.LAG_COLUMNS, self.LAG_HOURS, self.ROLLING_HOURS)
+
+        if len(data) < 1:
+            raise ValueError(f"Only {len(data)} rows after lag warm-up; increase days_back.")
+        return data
