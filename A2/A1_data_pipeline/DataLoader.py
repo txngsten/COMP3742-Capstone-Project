@@ -25,7 +25,7 @@ try:
         add_time_features,
         add_lag_features,
     )
-    
+
 except ImportError:
     from helper_functions import (
         fetch_in_chunks_market,
