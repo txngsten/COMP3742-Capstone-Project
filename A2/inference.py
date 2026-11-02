@@ -24,6 +24,9 @@ API_KEY: str | None = os.getenv("OPENELECTRICITY_API_KEY")
 dl = DataLoader(datetime.now(), datetime.now(), API_KEY)
 df = dl.fetch_instance()
 
+# To break up the fetching output from the actual inference
+print('===============================================')
+
 # Load in models and perform inference
 demand_model = DemandModel()
 demand_model.inference(instance=df.set_index("timestamp"))
