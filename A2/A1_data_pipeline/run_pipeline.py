@@ -12,7 +12,7 @@ import json
 
 import pandas as pd
 
-from A2.A1_data_pipeline.DataLoader import DataLoader
+from DataLoader import DataLoader
 from dotenv import load_dotenv
 from datetime import datetime
 from pathlib import Path
