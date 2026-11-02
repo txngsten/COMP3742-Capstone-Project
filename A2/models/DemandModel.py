@@ -138,7 +138,7 @@ class DemandModel:
             preds.append(m)
             stds.append(s)
 
-        # Save final model: tuned kernel, latest training window, per-hour interval scale
+        # Save final model
         np.savez(
             model_path,
             theta=kernel.theta,
@@ -192,7 +192,7 @@ class DemandModel:
                       with columns demand, demand_lag_1h, is_weekend.
             model_path: .npz file written by train().
         """
-        # Rebuild the GP from saved params (refit, no tuning)
+        # Rebuild the GP from saved params
         d = np.load(model_path)
         kernel = self._make_kernel(len(self.FEATURES)).clone_with_theta(d["theta"])
         sx = StandardScaler().fit(d["X_train"])
@@ -225,7 +225,7 @@ class DemandModel:
         })
 
     @staticmethod
-    def _explain(facts: dict, rules: str = "uncertainty.pl") -> None:
+    def _explain(facts: dict, rules: str = "prolog/uncertainty.pl") -> None:
         """
         Classifies and explains forecast uncertainty using Prolog rules.
         Args:
