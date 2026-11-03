@@ -4,6 +4,7 @@ Student FANs: WUTT0019, PUJA0009, PANT0108, ALFO0043
 Date: 02-11-2026
 File: training_pipeline.py
 Description: Train all implemented A2 models on the transformed electricity data.
+Usage: python training_pipeline --input data/processed/electricity_transformed.parquet
 """
 
 import argparse
