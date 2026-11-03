@@ -108,6 +108,10 @@ class DemandModel:
                           demand, demand_lag_1h, is_weekend.
             model_path: where to save the final model (.npz).
         """
+        print("\n========== Demand | Training ==========")
+        print("Model: Gaussian Process Regression | Horizon: 1 hour")
+        print("Evaluation: Walk-forward comparison with persistence")
+
         # Features and target (change in demand over the next hour)
         df = self._add_features(training_set)
         df["y"] = df["demand"].shift(-1)
@@ -125,7 +129,7 @@ class DemandModel:
         sx = StandardScaler().fit(X[sub])
         kernel = self._gp(self._make_kernel(X.shape[1]), tune=True) \
             .fit(sx.transform(X[sub]), y[sub]).kernel_
-        print(kernel)
+        print(f"Fitted kernel: {kernel}")
 
         # Rolling forecast with per-hour interval scaling
         preds, stds, past = [], [], []
@@ -174,10 +178,18 @@ class DemandModel:
 
         table = pd.DataFrame({"GP": metrics(res.pred), "persistence": metrics(res.persistence)}).T
         table["skill vs persistence"] = 1 - table["RMSE"] / table.loc["persistence", "RMSE"]
-        print(table.round(3))
+        print("\nTest performance:")
+        display = table.rename(index={"GP": "Gaussian Process", "persistence": "Persistence"},
+                               columns={"MAE": "MAE (MW)", "RMSE": "RMSE (MW)",
+                                        "R^2": "R²", "skill vs persistence": "RMSE skill"})
+        print(display.to_string(float_format=lambda value: f"{value:.3f}"))
+        print("RMSE skill is relative to persistence; higher is better.")
 
         coverage = np.mean(np.abs(res.actual - res.pred) <= 1.96 * res["std"])
-        print(f"95% band coverage: {coverage:.3f}")
+        print(f"95% prediction-interval coverage: {coverage:.1%}")
+        print(f"\nSaved model: {Path(model_path).resolve()}")
+        print("Status: Training and evaluation complete")
+        print("Plot: Last 14 days (close the plot window to continue if it blocks).")
 
         # Plot the last 14 days
         z = res.iloc[-24 * 14:]

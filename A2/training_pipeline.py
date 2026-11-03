@@ -39,13 +39,17 @@ def main():
     # Load and sort the dataset once for both models.
     df = pd.read_parquet(TRAINING_PATH).set_index("timestamp").sort_index()
 
+    print("\n========== Machine Learning Training ==========")
+    print(f"Dataset: {Path(TRAINING_PATH).resolve()}")
+    print(f"Observations: {len(df):,} | Columns: {len(df.columns)}")
+    print(f"Period: {df.index.min()} to {df.index.max()}")
+    print("Models: Demand, Price Spike, Network Stress, Renewable Generation")
+
     # Train and evaluate demand prediction, then save its parameters.
-    print('========== Next Hour Demand GP-Regression Results =========')
     demand_model = DemandModel()
     demand_model.train_eval(training_set=df)
 
     # Price-spike Prediction Model
-    print('\n========== Price Spike Prediction Model =========')
     price_model = PriceModel()
     price_model.train_eval(training_set=df)
 
@@ -54,6 +58,7 @@ def main():
     network_stress_model.train_eval(training_set=df)
 
     RenewableModel().train(training_set=df)
+    print("\n========== Training Complete ==========\nAll four training pipelines finished successfully.")
 
 if __name__ == "__main__":
     main()

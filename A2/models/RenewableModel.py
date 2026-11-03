@@ -84,6 +84,9 @@ class RenewableModel:
         Pass cleaned data, without curtailment trimming. Evaluation belongs in
         renewable_investigation.ipynb; this fits the final deployment artifact.
         """
+        print("\n========== Renewable Generation | Training ==========")
+        print("Model: Histogram Gradient Boosting | Horizon: 1 hour")
+        print("Configuration: Previously selected in the renewable investigation notebook")
         history = self._history(training_set)
         examples = self.build_features(history)
         examples["target"] = history["generation_renewable"].shift(-self.HORIZON_HOURS)
@@ -99,7 +102,12 @@ class RenewableModel:
             self.model.fit(examples[self.FEATURES], examples["target"])
         self.trained_through = (examples.index[-1] + pd.Timedelta(hours=1)).isoformat()
         self.save(model_path)
-        print(f"Renewable model trained on {len(examples):,} examples; saved to {model_path or self.DEFAULT_PATH}")
+        print(f"Training examples: {len(examples):,}")
+        print(f"Training targets through: {self.trained_through}")
+        print("\nEvaluation: Not performed in this training method.")
+        print("See renewable_investigation.ipynb for the recorded model comparison.")
+        print(f"\nSaved model: {Path(model_path or self.DEFAULT_PATH).resolve()}")
+        print("Status: Deployment model training complete")
 
     def save(self, model_path=None) -> None:
         """Store the fitted tree state as bytes in NPZ, plus readable metadata.

@@ -443,13 +443,25 @@ class NetworkStressModel:
 
     def train_eval(self, training_set: pd.DataFrame) -> dict[str, Any]:
         """Compare classifiers, evaluate the selected model and save its bundle."""
+        print("\n========== Network Stress | Training ==========")
+        print("Candidates: Random Forest, XGBoost | Horizon: 1 hour")
+        print("Selection: Highest validation macro-F1")
         result = train_pipeline(training_set, self.model_dir)
         self.bundle = None
-        print("\nNetwork-stress validation results:")
-        print(pd.DataFrame(result["validation_results"]).T.round(4))
+        names = {"accuracy": "Accuracy", "macro_f1": "Macro-F1", "critical_recall": "Critical recall"}
+        print("\nValidation performance:")
+        print(pd.DataFrame(result["validation_results"]).T.rename(columns=names)
+              .to_string(float_format=lambda value: f"{value:.4f}"))
         print(f"Selected model: {result['selected_model']}")
-        print(pd.Series(result["test_metrics"]).round(4))
-        print(result["classification_report"])
+        print("\nTest performance:")
+        print(pd.DataFrame([result["test_metrics"]], index=[result["selected_model"]])
+              .rename(columns=names).to_string(float_format=lambda value: f"{value:.4f}"))
+        print("Scores are on a 0–1 scale; higher is better.")
+        print("\nTest performance by class:")
+        print(result["classification_report"].strip())
+        print(f"\nSaved model: {result['bundle_path']}")
+        print(f"Saved metadata: {result['metadata_path']}")
+        print("Status: Training and evaluation complete")
         return result
 
     def train(self, training_set: pd.DataFrame) -> dict[str, Any]:

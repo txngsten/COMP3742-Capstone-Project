@@ -290,6 +290,9 @@ class PriceModel:
         Returns:
             Dictionary of all recorded metrics.
         """
+        print("\n========== Price Spike | Training ==========")
+        print("Candidates: Logistic Regression, Random Forest | Horizon: 1 hour")
+        print("Selection: Highest validation F2, with PR-AUC as the tie-breaker")
         report_dir = Path(report_dir)
         report_dir.mkdir(parents=True, exist_ok=True)
 
@@ -297,6 +300,7 @@ class PriceModel:
         features = self._add_features(data).dropna(subset=["is_high_price_next"])
         columns = self._feature_columns(features)
         splits = self._split(features)
+        print("\nDataset partitions:")
         for name, part in splits.items():
             print(f"{name:<10} {len(part):>6} hours, {part.is_high_price_next.mean():.2%} high-price, "
                   f"{part.target_timestamp.min():%Y-%m-%d} to {part.target_timestamp.max():%Y-%m-%d}")
@@ -311,6 +315,7 @@ class PriceModel:
                        for name, p in (("validation", val), ("test", test))}
         always_normal = self._score(y_test, np.zeros(len(test)), 0.5, test["price_is_high_now"])
 
+        print("\nValidation candidates (F2 and PR-AUC use a 0–1 scale):")
         # Tune each candidate on the validation year
         candidates, curves = [], {}
         for algorithm, options in self._candidates().items():
@@ -349,8 +354,15 @@ class PriceModel:
 
         table = pd.DataFrame({name: {k: v for k, v in r.items() if k != "confusion_matrix"}
                               for name, r in results.items()}).T
+        print("\nTest performance:")
         print(table[["accuracy", "precision", "recall", "f2", "pr_auc",
-                     "onset_recall", "continuing_recall"]].astype(float).round(3).to_string())
+                     "onset_recall", "continuing_recall"]].astype(float)
+              .rename(index={"persistence_baseline": "Persistence", "always_normal_baseline": "Always normal"},
+                      columns={"accuracy": "Accuracy", "precision": "Precision", "recall": "Recall",
+                               "f2": "F2", "pr_auc": "PR-AUC", "onset_recall": "Onset recall",
+                               "continuing_recall": "Continuing recall"})
+              .to_string(float_format=lambda value: f"{value:.3f}"))
+        print("Scores are on a 0–1 scale; higher is better.")
 
         # Save the model with everything inference needs
         self.model = fitted[selected["algorithm"]]
@@ -385,17 +397,21 @@ class PriceModel:
         # Hybrid evaluation: every test hour through ML -> Prolog
         summary, decisions = self._hybrid_eval(test, self.model.predict_proba(test[columns])[:, 1])
         decisions.to_csv(report_dir / "hybrid_test_decisions.csv", index=False)
-        print(f"Hybrid: any-alert recall {summary['hybrid_any_alert_recall']:.3f} "
-              f"(ML alone {summary['ml_only_recall']:.3f}), onset "
-              f"{summary['hybrid_any_alert_recall_onset']:.3f} "
-              f"(ML alone {summary['ml_only_recall_onset']:.3f}), "
-              f"constraint violations {summary['constraint_violations']}")
+        print("\nHybrid evaluation:")
+        hybrid_table = pd.DataFrame({
+            "ML only": [summary["ml_only_recall"], summary["ml_only_recall_onset"]],
+            "ML + rules": [summary["hybrid_any_alert_recall"], summary["hybrid_any_alert_recall_onset"]],
+        }, index=["Any-alert recall", "Onset recall"])
+        print(hybrid_table.to_string(float_format=lambda value: f"{value:.3f}"))
+        print(f"Constraint violations: {summary['constraint_violations']}")
 
         metrics = {"selected": selected["algorithm"], "validation_candidates": candidates,
                    "validation_baseline": persistence["validation"], "test": results,
                    "hybrid": summary}
         (report_dir / "metrics.json").write_text(json.dumps(metrics, indent=2, default=str) + "\n")
-        print(f"Model saved to {model_path}; reports in {report_dir}/")
+        print(f"\nSaved model: {Path(model_path).resolve()}")
+        print(f"Saved reports: {report_dir.resolve()}")
+        print("Status: Training and evaluation complete")
         return metrics
 
     def _hybrid_eval(self, test: pd.DataFrame, prob: np.ndarray) -> tuple:
