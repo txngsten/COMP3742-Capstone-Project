@@ -18,7 +18,7 @@ from threadpoolctl import threadpool_limits
 
 class RenewableModel:
     HORIZON_HOURS = 1
-    DEFAULT_PATH = Path(__file__).resolve().parents[1] / "renewable_gb.npz"
+    DEFAULT_PATH = Path(__file__).resolve().parents[1] / "saved_models" / "renewable_gb.npz"
     FEATURES = [
         f"{column}{suffix}"
         for column in ("generation_renewable", "demand")
@@ -146,7 +146,7 @@ class RenewableModel:
         self.trained_through = metadata.get("trained_through")
         return self
 
-    def inference(self, instance: pd.DataFrame, model_path=None) -> dict:
+    def inference(self, instance: pd.DataFrame, model_path=None, verbose: bool = True) -> dict:
         """Forecast one hour after the latest observation; return integration fields."""
         if model_path is not None or self.model is None:
             self.load(model_path)
@@ -163,5 +163,6 @@ class RenewableModel:
             "generation_renewable_mw": prediction,
             "horizon_hours": self.HORIZON_HOURS,
         }
-        print(f"{result['forecast_time']}: renewable generation {prediction:.0f} MW")
+        if verbose:
+            print(f"{result['forecast_time']}: renewable generation {prediction:.0f} MW")
         return result

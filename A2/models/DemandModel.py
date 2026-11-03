@@ -6,6 +6,8 @@ Date: 02-11-2026
 Description: Class file for training and performing inference for next-hour demand predictions.
 """
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -13,6 +15,12 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ConstantKernel, Matern, WhiteKernel
+
+
+# Resolve saved parameters and rules from A2, independently of the launch directory.
+A2_DIR = Path(__file__).resolve().parents[1]
+DEFAULT_MODEL_PATH = str(A2_DIR / "saved_models" / "demand_gp.npz")
+DEFAULT_RULES_PATH = str(A2_DIR / "prolog" / "uncertainty.pl")
 
 
 class DemandModel:
@@ -91,7 +99,7 @@ class DemandModel:
         return np.array([np.quantile(z[hz == i], 0.95) / 1.96 for i in range(24)])
 
 
-    def train_eval(self, training_set: pd.DataFrame, model_path: str = "demand_gp.npz") -> None:
+    def train_eval(self, training_set: pd.DataFrame, model_path: str = DEFAULT_MODEL_PATH) -> None:
         """
         Trains a GP Regression model to predict next hour demand, evaluates it
         walk-forward over the test period and saves the final model.
@@ -137,7 +145,8 @@ class DemandModel:
             preds.append(m)
             stds.append(s)
 
-        # Save final model
+        # Create the output folder before saving the trained parameters.
+        Path(model_path).parent.mkdir(parents=True, exist_ok=True)
         np.savez(
             model_path,
             theta=kernel.theta,
@@ -183,7 +192,7 @@ class DemandModel:
         plt.show()
 
 
-    def inference(self, instance: pd.DataFrame, model_path: str = "demand_gp.npz", explain: bool = True) -> dict:
+    def inference(self, instance: pd.DataFrame, model_path: str = DEFAULT_MODEL_PATH, explain: bool = True, verbose: bool = True) -> dict:
         """
         Predicts demand for the hour after the last row of new instance and explains its uncertainty.
         Args:
@@ -191,6 +200,7 @@ class DemandModel:
                       with columns demand, demand_lag_1h, is_weekend.
             model_path: .npz file written by train().
             explain: Run the existing Prolog uncertainty explanation (default True).
+            verbose: Print output when True; shared inference formats returned results.
 
         Returns:
             Timestamped next-hour demand prediction and calibrated interval.
@@ -211,12 +221,14 @@ class DemandModel:
         # Print prediction
         pred = last["demand"] + m[0]
         band = 1.96 * s[0] * d["hour_scale"][target_time.hour]
-        print(f"{target_time}: {pred:.0f} MW ± {band:.0f}")
+        if verbose:
+            print(f"{target_time}: {pred:.0f} MW ± {band:.0f}")
 
         # Explain the uncertainty with Prolog
         demand_train = d["X_train"][:, self.FEATURES.index("demand")]
+        explanation = None
         if explain:
-            self._explain({
+            explanation = self._explain({
                 "pred": pred,
                 "band": band,
                 "hour_scale": d["hour_scale"][target_time.hour],
@@ -226,18 +238,19 @@ class DemandModel:
                 "is_weekend": last["is_weekend"],
                 "train_min": demand_train.min(),
                 "train_max": demand_train.max(),
-            })
+            }, verbose=verbose)
         return {
             "forecast_time": target_time,
             "horizon_hours": 1,
             "demand_mw": float(pred),
             "lower_95_mw": float(pred - band),
             "upper_95_mw": float(pred + band),
+            "uncertainty": explanation,
         }
 
 
     @staticmethod
-    def _explain(facts: dict, rules: str = "prolog/uncertainty.pl") -> None:
+    def _explain(facts: dict, rules: str = DEFAULT_RULES_PATH, verbose: bool = True) -> dict:
         """
         Classifies and explains forecast uncertainty using Prolog rules.
         Args:
@@ -253,7 +266,11 @@ class DemandModel:
             prolog.assertz(f"forecast({k}, {float(v):.6f})")
 
         result = list(prolog.query("explanation(Level, Texts)"))[0]
-        print(f"Uncertainty: {result['Level']}")
         reasons = [str(t) for t in result["Texts"]]
-        for r in reasons or ["no specific risk factors; band reflects normal model noise"]:
-            print(f"  - {r}")
+        reasons = reasons or ["no specific risk factors; band reflects normal model noise"]
+        explanation = {"level": str(result["Level"]), "reasons": reasons}
+        if verbose:
+            print(f"Uncertainty: {explanation['level']}")
+            for reason in reasons:
+                print(f"  - {reason}")
+        return explanation

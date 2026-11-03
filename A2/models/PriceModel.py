@@ -26,6 +26,12 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 
+# Resolve saved artifacts and rules from A2, independently of the launch directory.
+A2_DIR = Path(__file__).resolve().parents[1]
+DEFAULT_MODEL_PATH = str(A2_DIR / "saved_models" / "price_spike_model.joblib")
+DEFAULT_REPORT_DIR = str(A2_DIR / "reports" / "price")
+
+
 class PriceModel:
     """
     Predicts whether the next hour's NSW spot price will be high (> $300/MWh)
@@ -60,7 +66,7 @@ class PriceModel:
     MAX_DATA_AGE_HOURS = 1
     PRICE_FLOOR, PRICE_CAP = -1000.0, 20000.0
 
-    RULES = "prolog/price_spike.pl"
+    RULES = str(A2_DIR / "prolog" / "price_spike.pl")
     ALERT_ACTIONS = {"defer_non_essential_loads", "issue_price_warning",
                      "use_site_battery", "monitor_conditions"}
 
@@ -269,8 +275,8 @@ class PriceModel:
     # Training
     # ------------------------------------------------------------------
 
-    def train_eval(self, training_set: pd.DataFrame, model_path: str = "price_spike_model.joblib",
-                   report_dir: str = "reports/price") -> dict:
+    def train_eval(self, training_set: pd.DataFrame, model_path: str = DEFAULT_MODEL_PATH,
+                   report_dir: str = DEFAULT_REPORT_DIR) -> dict:
         """
         Compares Logistic Regression and Random Forest against persistence and
         always-normal baselines, picks an F2 threshold on the validation year,
@@ -361,6 +367,8 @@ class PriceModel:
                        for name, p in splits.items()},
             "trained_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         }
+        # Create the output folder before saving the fitted model.
+        Path(model_path).parent.mkdir(parents=True, exist_ok=True)
         joblib.dump({"model": self.model, "metadata": self.metadata}, model_path, compress=3)
 
         # Figures, importances and metrics for the report
@@ -493,8 +501,8 @@ class PriceModel:
             issues.append("negative curtailment in the latest hour")
         return ("suspect" if issues else "valid"), issues
 
-    def inference(self, instance: pd.DataFrame, model_path: str = "price_spike_model.joblib",
-                  clock: pd.Timestamp | None = None) -> dict:
+    def inference(self, instance: pd.DataFrame, model_path: str = DEFAULT_MODEL_PATH,
+                  clock: pd.Timestamp | None = None, verbose: bool = True) -> dict:
         """
         Predicts whether the hour after the last row will be high-priced and
         recommends site actions with Prolog. Invalid input skips the model and
@@ -536,19 +544,20 @@ class PriceModel:
                   "observed_at": observed_at.isoformat(),
                   **facts, "inputs": latest, "recommendation": self._reason(facts)}
 
-        # Print prediction and explanation
-        rec = result["recommendation"]
-        print(f"{result['prediction_for']}: {facts['prediction']} "
-              f"(P(spike) = {facts['probability']:.2f}, threshold {facts['threshold']:.2f}, "
-              f"grid demand {facts['grid_demand']}, data {rec['data_quality']})")
-        print(f"Recommended: {rec['primary_action']}  (all actions: {', '.join(rec['actions'])}; "
-              f"confidence {rec['confidence']})")
-        for rule, text in zip(rec["rules"], rec["explanations"]):
-            print(f"  - [{rule}] {text}")
-        if rec["deferred_loads"]:
-            print(f"  Defer: {', '.join(rec['deferred_loads'])}. Critical loads keep running.")
-        for issue in rec["quality_issues"]:
-            print(f"  ! {issue}")
+        if verbose:
+            # Print prediction and explanation
+            rec = result["recommendation"]
+            print(f"{result['prediction_for']}: {facts['prediction']} "
+                  f"(P(spike) = {facts['probability']:.2f}, threshold {facts['threshold']:.2f}, "
+                  f"grid demand {facts['grid_demand']}, data {rec['data_quality']})")
+            print(f"Recommended: {rec['primary_action']}  (all actions: {', '.join(rec['actions'])}; "
+                  f"confidence {rec['confidence']})")
+            for rule, text in zip(rec["rules"], rec["explanations"]):
+                print(f"  - [{rule}] {text}")
+            if rec["deferred_loads"]:
+                print(f"  Defer: {', '.join(rec['deferred_loads'])}. Critical loads keep running.")
+            for issue in rec["quality_issues"]:
+                print(f"  ! {issue}")
         return result
 
     # ------------------------------------------------------------------

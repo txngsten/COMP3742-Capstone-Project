@@ -89,3 +89,41 @@ Live inference uses `OPENELECTRICITY_API_KEY` from the environment or `.env`;
 an existing environment value takes precedence. Model and Prolog paths are resolved
 relative to A2, independently of the launch directory. Train both models before
 running inference.
+
+### Saved model paths
+
+All four training pipelines save their fitted models in `A2/saved_models/`:
+
+- `demand_gp.npz`
+- `price_spike_model.joblib`
+- `network_stress_model.joblib`
+- `network_stress_model_metadata.json`
+- `renewable_gb.npz`
+
+Training creates this directory automatically. Inference and the network-stress
+notebooks load from the same directory, independently of the launch directory.
+The directory is ignored by Git. Explicit model-path overrides still work.
+Price evaluation reports remain under `A2/reports/price/`, and rule files remain
+under `A2/prolog/`. Existing artifacts copied from older locations can be used
+without retraining; original copies are retained as backups.
+
+
+### Combined inference assessment
+
+Inference now prints Demand Forecast, Network Stress, Price Spike, Renewable Coverage,
+and Combined System Assessment using the same forecast-time, assessment, explanation,
+and recommendation headings. Each model retains its standalone output by default;
+the shared pipeline requests structured results without printing twice.
+
+`prolog/system_assessment.pl` coordinates the subsystem evidence through Prolog.
+`prolog/SystemAssessment.py` validates aligned one-hour forecast times and records
+subsystem failures. Missing results, mismatched times or unavailable reasoning
+prevent an all-clear. Critical/high network stress and uncertain or invalid evidence
+prioritise operator review ahead of economic actions. A renewable-share shortfall
+remains a target issue, not proof of insufficient total supply. The combined layer
+is advisory: it does not execute actions, send notifications, or certify grid safety.
+
+Demand uncertainty, stress warnings, price actions and renewable coverage retain
+their individual explanations. These combined rules are project policies requiring
+domain validation, not calibrated probabilities of system failure. Renewable
+reasoning continues to use the existing miniKanren subsystem.
