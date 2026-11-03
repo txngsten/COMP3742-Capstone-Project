@@ -15,3 +15,4 @@ __pycache__/
 /A2/demand_gp.npz
 .venv/
 .vscode/
+/A2/renewable_gb.npz

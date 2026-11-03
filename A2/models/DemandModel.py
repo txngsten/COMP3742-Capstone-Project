@@ -9,7 +9,6 @@ Description: Class file for training and performing inference for next-hour dema
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from pyswip import Prolog
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -184,13 +183,17 @@ class DemandModel:
         plt.show()
 
 
-    def inference(self, instance: pd.DataFrame, model_path: str = "demand_gp.npz") -> None:
+    def inference(self, instance: pd.DataFrame, model_path: str = "demand_gp.npz", explain: bool = True) -> dict:
         """
         Predicts demand for the hour after the last row of new instance and explains its uncertainty.
         Args:
             instance: hourly history (DatetimeIndex), at least the last 168 rows,
                       with columns demand, demand_lag_1h, is_weekend.
             model_path: .npz file written by train().
+            explain: Run the existing Prolog uncertainty explanation (default True).
+
+        Returns:
+            Timestamped next-hour demand prediction and calibrated interval.
         """
         # Rebuild the GP from saved params
         d = np.load(model_path)
@@ -212,17 +215,26 @@ class DemandModel:
 
         # Explain the uncertainty with Prolog
         demand_train = d["X_train"][:, self.FEATURES.index("demand")]
-        self._explain({
-            "pred": pred,
-            "band": band,
-            "hour_scale": d["hour_scale"][target_time.hour],
-            "demand": last["demand"],
-            "lag_1h": last["demand_lag_1h"],
-            "lag_23h": last["demand_lag_23h"],
-            "is_weekend": last["is_weekend"],
-            "train_min": demand_train.min(),
-            "train_max": demand_train.max(),
-        })
+        if explain:
+            self._explain({
+                "pred": pred,
+                "band": band,
+                "hour_scale": d["hour_scale"][target_time.hour],
+                "demand": last["demand"],
+                "lag_1h": last["demand_lag_1h"],
+                "lag_23h": last["demand_lag_23h"],
+                "is_weekend": last["is_weekend"],
+                "train_min": demand_train.min(),
+                "train_max": demand_train.max(),
+            })
+        return {
+            "forecast_time": target_time,
+            "horizon_hours": 1,
+            "demand_mw": float(pred),
+            "lower_95_mw": float(pred - band),
+            "upper_95_mw": float(pred + band),
+        }
+
 
     @staticmethod
     def _explain(facts: dict, rules: str = "prolog/uncertainty.pl") -> None:
@@ -232,6 +244,8 @@ class DemandModel:
             facts: forecast values and context from inference().
             rules: path to the Prolog rules file.
         """
+        from pyswip import Prolog
+
         prolog = Prolog()
         prolog.consult(rules)
         prolog.retractall("forecast(_, _)")
