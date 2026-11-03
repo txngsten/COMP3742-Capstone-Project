@@ -14,3 +14,6 @@ __pycache__/
 /A2/reports/
 /A2/demand_gp.npz
 /A2/price_spike_model.joblib
+/A2/models/network_stress_model.joblib
+/A2/models/network_stress_model_metadata.json
+

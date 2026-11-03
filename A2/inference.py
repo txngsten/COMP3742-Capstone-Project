@@ -1,38 +1,60 @@
 """
 Student Names: Oliver Wuttke, Hans Pujalte, Shivansh Pant, Matilda Alford
 Student FANs: WUTT0019, PUJA0009, PANT0108, ALFO0043
-File: inference.py
 Date: 02-11-2026
-Description: Performs one-off inference on pre-trained models.
+File: inference.py
+Description: Run all implemented models on the latest electricity data.
 """
+
 import os
-import pandas as pd
 from datetime import datetime
+
 from dotenv import load_dotenv
+
 from A1_data_pipeline.DataLoader import DataLoader
-
 from models.DemandModel import DemandModel
-from models.NetworkStressModel import NetworkStressModel
-from models.PriceModel import PriceModel
-from models.RenewableModel import RenewableModel
+from models.NetworkStressModel import NetworkStressModel, print_result
 
-# Load in env variables
-load_dotenv()
-API_KEY: str | None = os.getenv("OPENELECTRICITY_API_KEY")
 
-# Init dataloader
-dl = DataLoader(datetime.now(), datetime.now(), API_KEY)
-df = dl.fetch_instance()
+def main():
+    """Fetch shared observations and run each implemented model."""
+    # Load the API key without overriding an existing environment value.
+    load_dotenv()
+    api_key = os.getenv("OPENELECTRICITY_API_KEY")
+    if not api_key:
+        raise ValueError(
+            "Set OPENELECTRICITY_API_KEY in the environment or .env."
+        )
 
-# To break up the fetching output from the actual inference
-print('===============================================')
+    # Fetch and transform the history once for all models.
+    now = datetime.now()
+    loader = DataLoader(now, now, api_key)
+    history = (
+        loader.fetch_instance()
+        .set_index("timestamp")
+        .sort_index()
+    )
 
-# Load in models and perform inference
-demand_model = DemandModel()
-demand_model.inference(instance=df.set_index("timestamp"))
+    print('========== Demand Model Predictions =========')
+    # Predict next-hour demand using its saved model parameters.
+    demand_model = DemandModel()
+    demand_model.inference(
+        instance=history,
+        model_path="demand_gp.npz",
+    )
+
+    # Predict next-hour network stress and display its recommendations.
+    network_stress_model = NetworkStressModel()
+    result = network_stress_model.inference(instance=history)
+    print_result(result)
+
+    # Add price and renewable inference here when implemented.
+
 
 print('===============================================')
 price_model = PriceModel()
 price_model.inference(instance=df.set_index("timestamp"))
 
 # Other model inference...
+if __name__ == "__main__":
+    main()
