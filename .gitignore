@@ -13,6 +13,9 @@ __pycache__/
 /A2/.env
 /A2/reports/
 /A2/demand_gp.npz
+.venv/
+.vscode/
+/A2/renewable_gb.npz
 /A2/price_spike_model.joblib
 /A2/models/network_stress_model.joblib
 /A2/models/network_stress_model_metadata.json
