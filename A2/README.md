@@ -61,7 +61,7 @@ python A1_data_pipeline/run_pipeline.py
 Train both implemented subsystems:
 
 ```bash
-python training_pipeline.py --input A2/data/processed/electricity_transformed.parquet
+python training_pipeline.py --input data/processed/electricity_transformed.parquet
 ```
 
 The `--input` argument is required and specifies the transformed dataset to load.
