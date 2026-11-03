@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 
 from A1_data_pipeline.DataLoader import DataLoader
 from models.DemandModel import DemandModel
+from models.PriceModel import PriceModel
 from models.NetworkStressModel import NetworkStressModel, print_result
 
 
@@ -35,7 +36,7 @@ def main():
         .sort_index()
     )
 
-    print('========== Demand Model Predictions =========')
+    print('\n========== Demand Model Predictions =========')
     # Predict next-hour demand using its saved model parameters.
     demand_model = DemandModel()
     demand_model.inference(
@@ -49,11 +50,11 @@ def main():
     print_result(result)
 
     # Add price and renewable inference here when implemented.
+    print('\n========== Price Spike Inference =====================')
+    price_model = PriceModel()
+    price_model.inference(instance=history)
 
 
-print('===============================================')
-price_model = PriceModel()
-price_model.inference(instance=df.set_index("timestamp"))
 
 # Other model inference...
 if __name__ == "__main__":
