@@ -62,7 +62,7 @@ THRESHOLD_FEATURES = list(
 
 
 A2_DIR = Path(__file__).resolve().parents[1]
-DEFAULT_MODEL_DIR = A2_DIR / "models"
+DEFAULT_MODEL_DIR = A2_DIR / "saved_models"
 DEFAULT_RULES_PATH = A2_DIR / "prolog" / "stress_rules.pl"
 
 
