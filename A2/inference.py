@@ -51,5 +51,10 @@ def main():
     # Add price and renewable inference here when implemented.
 
 
+print('===============================================')
+price_model = PriceModel()
+price_model.inference(instance=df.set_index("timestamp"))
+
+# Other model inference...
 if __name__ == "__main__":
     main()
