@@ -34,4 +34,8 @@ df = pd.read_parquet(TRAINING_PATH).set_index("timestamp").sort_index()
 demand_model = DemandModel()
 demand_model.train_eval(training_set=df)
 
+# Price-spike Prediction Model
+price_model = PriceModel()
+price_model.train_eval(training_set=df)
+
 # Other models...

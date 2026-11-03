@@ -31,4 +31,8 @@ print('===============================================')
 demand_model = DemandModel()
 demand_model.inference(instance=df.set_index("timestamp"))
 
+print('===============================================')
+price_model = PriceModel()
+price_model.inference(instance=df.set_index("timestamp"))
+
 # Other model inference...
