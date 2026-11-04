@@ -12,7 +12,7 @@ This is the working repository for the A2 submission for Group P, COMP3742 Artif
 | Matilda Alford | ALFO0043 |
 
 Each function contains an author in the comment stub which will contain the name and FAN of the group member who wrote it.
-If a file has only 1 author then functions/methods will not contain author notes
+If a file has only 1 author then functions/methods will not contain author notes. Please refer to [the notebooks](notebooks) directory to see notebooks where initial model evaluation and investigations are done.
 
 ## Setup and Installation
 
@@ -80,10 +80,6 @@ Run both subsystems against recent transformed observations fetched once from th
 ```bash
 python inference.py
 ```
-
-The script always runs demand and network-stress inference in sequence on the same
-history. It does not accept model-selection or historical-data arguments. For a
-historical network-stress demonstration, use `notebooks/inference.ipynb`.
 
 Live inference uses `OPENELECTRICITY_API_KEY` from the environment or `.env`;
 an existing environment value takes precedence. Model and Prolog paths are resolved
